@@ -1,25 +1,44 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, Box } from 'lucide-react';
+import { iniciarSesion } from '../services/auth.service';
 
-const Login = () => {
-  // Estados para manejar los inputs del formulario
+// 1. NUEVO: Agregamos { onLoginSuccess } aquí adentro
+const Login = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Manejador del envío del formulario
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Aquí conectarías con tu backend (ej. un fetch a tu API)
-    console.log('Datos enviados:', { email, password });
-  };
+  // 2. NUEVO: Estados para manejar errores y botones de carga
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
+  // 3. NUEVO: Transformamos esta función a 'async' y llamamos al backend
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(''); // Limpiamos errores anteriores
+    setLoading(true); // Encendemos el estado de carga
+
+    try {
+      // Llamamos al servicio que se comunica con Spring Boot
+      await iniciarSesion(email, password);
+      
+      // Si pasa a la siguiente línea sin caer al catch, ¡el login fue exitoso!
+      if (onLoginSuccess) {
+        onLoginSuccess();
+      }
+    } catch (err) {
+      // Si Spring Boot rechaza la contraseña o hay error, mostramos esto:
+      setError('Correo o contraseña incorrectos.');
+    } finally {
+      setLoading(false); // Apagamos el estado de carga
+    }
+  };
+  
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 font-sans">
       
       {/* Sección del Logo y Título */}
       <div className="flex items-center mb-8 gap-4">
-        {/* Ícono representativo del logo cúbico */}
         <div className="text-blue-500">
           <Box size={48} strokeWidth={1.5} />
         </div>
@@ -28,15 +47,21 @@ const Login = () => {
         </h1>
       </div>
 
-      {/* Contenedor principal de la tarjeta de Login */}
       <div className="bg-white p-8 rounded-lg shadow-sm border border-slate-100 w-full max-w-md">
         <h2 className="text-xl font-semibold text-center mb-6 text-slate-800">
           INICIAR SESIÓN
         </h2>
 
+        {/* 4. NUEVO: Caja roja para mostrar el mensaje de error si falla */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-md text-center">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-5">
           
-          {/* Input: Correo Electrónico */}
+          {/* Input: Correo Electrónico (QUEDA IGUAL) */}
           <div>
             <label className="block text-sm text-slate-700 mb-1">
               Correo Electrónico
@@ -46,7 +71,7 @@ const Login = () => {
                 <Mail className="h-4 w-4 text-slate-400" />
               </div>
               <input
-                type="email"
+                type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
@@ -56,7 +81,7 @@ const Login = () => {
             </div>
           </div>
 
-          {/* Input: Contraseña */}
+          {/* Input: Contraseña (QUEDA IGUAL) */}
           <div>
             <label className="block text-sm text-slate-700 mb-1">
               Contraseña
@@ -85,7 +110,6 @@ const Login = () => {
             </div>
           </div>
 
-          {/* Checkbox: Recuérdame */}
           <div className="flex items-center">
             <input
               id="remember-me"
@@ -97,16 +121,17 @@ const Login = () => {
             </label>
           </div>
 
-          {/* Botón de Ingreso */}
+          {/* 5. NUEVO: Botón actualizado para desactivarse mientras carga */}
           <button
             type="submit"
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#3b82f6] hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors mt-2"
+            disabled={loading}
+            className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white transition-colors mt-2 
+              ${loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-[#3b82f6] hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'}`}
           >
-            Ingresar
+            {loading ? 'Verificando...' : 'Ingresar'}
           </button>
         </form>
 
-        {/* Enlace: Olvidaste tu contraseña */}
         <div className="mt-6 text-center">
           <a href="#" className="text-sm text-[#3b82f6] hover:text-blue-700 transition-colors">
             ¿Olvidaste tu contraseña?
@@ -116,4 +141,5 @@ const Login = () => {
     </div>
   );
 }
+
 export default Login;

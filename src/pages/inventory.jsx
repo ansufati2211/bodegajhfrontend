@@ -6,15 +6,27 @@ import {
 } from 'lucide-react';
 // Importamos la función que hace la petición al backend
 import { obtenerProductos } from '../services/inventory.service';
-
+import { useNavigate } from 'react-router-dom';
 const Inventory = () => {
+  const navigate = useNavigate();
+
+  // 2. Creamos la función mágica de deslogueo
+  const handleLogout = () => {
+
+    // 2. Borramos tokens
+    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
+
+    // 3. Redirigimos
+    window.location.href = '/';
+  };
   // Estado para almacenar los productos de la BD
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Hook para disparar la carga de datos al montar el componente
-  useEffect(() => {
+ useEffect(() => {
     const fetchInventory = async () => {
       try {
         setLoading(true);
@@ -28,7 +40,7 @@ const Inventory = () => {
       }
     };
 
-    fetchInventory();
+     fetchInventory();
   }, []);
 
   if (loading) return (
@@ -65,7 +77,7 @@ const Inventory = () => {
         </nav>
 
         <div className="p-4 border-t border-slate-700">
-          <button className="flex items-center gap-3 px-4 py-3 text-sm hover:text-white transition-colors w-full">
+          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-sm hover:text-white transition-colors w-full">
             <LogOut size={20} />
             <span>Cerrar Sesión</span>
           </button>

@@ -1,19 +1,26 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
-import './index.css'
-import Login from './components/Login'
-import Inventory from './pages/inventory'
-function App() {
-  const [count, setCount] = useState(0)
+import { useState, useEffect } from 'react';
+import Login from './components/Login'; // Ajusta la ruta si es necesario
+import Inventory from './pages/Inventory'; // Ajusta la ruta si es necesario
 
+function App() {
+  // Verificamos si ya hay un token al recargar la página
+  const [estaLogueado, setEstaLogueado] = useState(!!localStorage.getItem('token'));
+
+  // Esta función se ejecuta cuando el Login.jsx responde con éxito
+  const manejarIngresoExitoso = () => {
+    setEstaLogueado(true);
+  };
+
+  // Si no está logueado, muestra el Login. Si lo está, muestra el Inventario.
   return (
     <>
-     <Inventory />
+      {estaLogueado ? (
+        <Inventory /> 
+      ) : (
+        <Login onLoginSuccess={manejarIngresoExitoso} />
+      )}
     </>
-  )
+  );
 }
 
-export default App
+export default App;
