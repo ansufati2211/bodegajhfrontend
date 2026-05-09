@@ -14,8 +14,6 @@ const Inventory = () => {
   const handleLogout = () => {
 
     // 2. Borramos tokens
-    localStorage.removeItem('token');
-    sessionStorage.removeItem('token');
 
     // 3. Redirigimos
     window.location.href = '/';
