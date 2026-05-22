@@ -7,16 +7,20 @@ import {
 // Importamos la función que hace la petición al backend
 import { obtenerProductos } from '../services/inventory.service';
 import { useNavigate } from 'react-router-dom';
-const Inventory = () => {
+const Inventory = ({ onLogout }) => {
   const navigate = useNavigate();
 
   // 2. Creamos la función mágica de deslogueo
   const handleLogout = () => {
-
-    // 2. Borramos tokens
-
-    // 3. Redirigimos
-    window.location.href = '/';
+    console.log("🕵️‍♂️ 1. ¡Click detectado en el botón!");
+    localStorage.removeItem('token'); 
+    console.log("🕵️‍♂️ 2. ¿Sigue el token vivo?:", localStorage.getItem('token')); 
+  
+  // 4. Forzamos la salida
+    window.location.href = '/'; // Navegación instantánea sin recargar toda la pestaña
+    
+    // NOTA: Para que esto funcione 100% sin recargar, asegúrate de que App.jsx 
+    // detecte el cambio o pásale una función desde App.jsx a Inventory como props.
   };
   // Estado para almacenar los productos de la BD
   const [products, setProducts] = useState([]);
@@ -75,7 +79,7 @@ const Inventory = () => {
         </nav>
 
         <div className="p-4 border-t border-slate-700">
-          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-sm hover:text-white transition-colors w-full">
+          <button onClick={onLogout} className="flex items-center gap-3 px-4 py-3 text-sm hover:text-white transition-colors w-full">
             <LogOut size={20} />
             <span>Cerrar Sesión</span>
           </button>

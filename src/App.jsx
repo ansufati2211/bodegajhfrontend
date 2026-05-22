@@ -10,12 +10,16 @@ function App() {
   const manejarIngresoExitoso = () => {
     setEstaLogueado(true);
   };
+  const manejarCierreSesion = () => {
+    localStorage.removeItem('token');
+    setEstaLogueado(false); // ¡Esto es lo que le avisa a React que cambie la pantalla!
+  };
 
   // Si no está logueado, muestra el Login. Si lo está, muestra el Inventario.
   return (
     <>
       {estaLogueado ? (
-        <Inventory /> 
+        <Inventory onLogout={manejarCierreSesion}/> 
       ) : (
         <Login onLoginSuccess={manejarIngresoExitoso} />
       )}
