@@ -4,47 +4,148 @@ import {
   BarChart3, Settings, LogOut, Search, Plus, 
   Filter, Download, Eye, Edit, Trash2, ChevronDown 
 } from 'lucide-react';
-// Importamos la función que hace la petición al backend
-import { obtenerProductos } from '../services/inventory.service';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import { obtenerProductos, crearProducto, actualizarProducto, eliminarProducto } from '../services/inventory.service';
 import { useNavigate } from 'react-router-dom';
+
 const Inventory = ({ onLogout }) => {
   const navigate = useNavigate();
 
-  // 2. Creamos la función mágica de deslogueo
-  const handleLogout = () => {
-    console.log("🕵️‍♂️ 1. ¡Click detectado en el botón!");
-    localStorage.removeItem('token'); 
-    console.log("🕵️‍♂️ 2. ¿Sigue el token vivo?:", localStorage.getItem('token')); 
-  
-  // 4. Forzamos la salida
-    window.location.href = '/'; // Navegación instantánea sin recargar toda la pestaña
-    
-    // NOTA: Para que esto funcione 100% sin recargar, asegúrate de que App.jsx 
-    // detecte el cambio o pásale una función desde App.jsx a Inventory como props.
-  };
-  // Estado para almacenar los productos de la BD
+  // --- 1. ESTADOS DE LA APLICACIÓN ---
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [busqueda, setBusqueda] = useState('');
+  
+  // Estados para los Modales
+  const [mostrarModalCrear, setMostrarModalCrear] = useState(false);
+  const [mostrarModalVer, setMostrarModalVer] = useState(false);
+  const [mostrarModalEditar, setMostrarModalEditar] = useState(false);
+  
+  // Estados para guardar los datos del producto
+  const [productoSeleccionado, setProductoSeleccionado] = useState(null);
+  
+  // AVISO: Ahora todo usa CamelCase (igual que en Java)
+  const [nuevoProducto, setNuevoProducto] = useState({
+    codigoBarras: '', nombre: '', precioCompra: 0, precioVenta: 0, stock: 0, idCategoria: 1, idProveedor: 1, estado: true
+  });
 
-  // Hook para disparar la carga de datos al montar el componente
- useEffect(() => {
-    const fetchInventory = async () => {
-      try {
-        setLoading(true);
-        const data = await obtenerProductos();
-        setProducts(data);
-      } catch (err) {
-        setError("Error al conectar con el servidor de Spring Boot");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // --- 2. CARGA DE DATOS DESDE SPRING BOOT ---
+  const fetchInventory = async () => {
+    try {
+      setLoading(true);
+      const data = await obtenerProductos();
+      setProducts(data);
+    } catch (err) {
+      setError("Error al conectar con el servidor de Spring Boot");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-     fetchInventory();
+  useEffect(() => {
+    fetchInventory();
   }, []);
 
+  // --- 3. LÓGICA DEL BUSCADOR ---
+  const productosFiltrados = products.filter(producto => 
+    (producto.nombre && producto.nombre.toLowerCase().includes(busqueda.toLowerCase())) || 
+    (producto.codigoBarras && producto.codigoBarras.includes(busqueda))
+  );
+
+  // --- 4. LÓGICA DE EXPORTACIÓN ---
+  const exportarExcel = () => {
+    const dataExcel = productosFiltrados.map(p => ({
+      SKU: p.codigoBarras || 'N/A',
+      Nombre: p.nombre,
+      'Precio Compra': p.precioCompra || 0,
+      'Precio Venta': p.precioVenta || 0,
+      Stock: p.stock,
+      Estado: p.stock > 10 ? 'EN STOCK' : 'BAJO STOCK'
+    }));
+    
+    const worksheet = XLSX.utils.json_to_sheet(dataExcel);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Inventario");
+    XLSX.writeFile(workbook, "Reporte_Inventario.xlsx");
+  };
+
+  const exportarPDF = () => {
+    const doc = new jsPDF();
+    doc.text("Reporte de Inventario - SQMIN", 14, 10);
+    const tableData = productosFiltrados.map(p => [
+      p.codigoBarras || 'N/A', p.nombre, `$${(p.precioVenta || 0).toFixed(2)}`, p.stock
+    ]);
+    doc.autoTable({ head: [['SKU', 'Nombre', 'Precio Venta', 'Stock']], body: tableData, startY: 20 });
+    doc.save("Reporte_Inventario.pdf");
+  };
+
+  // --- 5. LÓGICA DE ACCIONES ---
+  
+  // Crear
+  const handleGuardarProducto = async (e) => {
+    e.preventDefault(); 
+    try {
+      await crearProducto(nuevoProducto);
+      setMostrarModalCrear(false); 
+      // Limpiamos el formulario para el siguiente uso
+      setNuevoProducto({
+        codigoBarras: '', nombre: '', precioCompra: 0, precioVenta: 0, stock: 0, idCategoria: 1, idProveedor: 1, estado: true
+      });
+      await fetchInventory(); 
+      alert("¡Producto añadido con éxito!");
+    } catch (err) {
+      alert("Hubo un error al guardar el producto.");
+      console.error(err);
+    }
+  };
+
+  // Abrir Modal Ver
+  const abrirModalVer = (producto) => {
+    setProductoSeleccionado(producto);
+    setMostrarModalVer(true);
+  };
+
+  // Abrir Modal Editar
+  const abrirModalEditar = (producto) => {
+    setProductoSeleccionado({ ...producto }); 
+    setMostrarModalEditar(true);
+  };
+
+  // Actualizar (Editar)
+  const handleActualizarProducto = async (e) => {
+    e.preventDefault();
+    try {
+      // Usamos idProducto con CamelCase como espera Java
+      const id = productoSeleccionado.idProducto;
+      await actualizarProducto(id, productoSeleccionado);
+      setMostrarModalEditar(false);
+      await fetchInventory(); 
+      alert("¡Producto actualizado con éxito!");
+    } catch (err) {
+      alert("Hubo un error al actualizar el producto.");
+      console.error(err);
+    }
+  };
+
+  // Eliminar (Borrado Lógico)
+  const handleEliminarProducto = async (id) => {
+    if (window.confirm("¿Estás seguro de que deseas eliminar este producto? Esta acción no se puede deshacer.")) {
+      try {
+        await eliminarProducto(id);
+        await fetchInventory(); 
+        alert("¡Producto eliminado con éxito!");
+      } catch (err) {
+        alert("No se pudo eliminar el producto por seguridad de la base de datos.");
+        console.error(err);
+      }
+    }
+  };
+
+  // --- 6. PANTALLA DE CARGA ---
   if (loading) return (
     <div className="flex h-screen items-center justify-center bg-slate-50">
       <div className="text-center">
@@ -54,10 +155,11 @@ const Inventory = ({ onLogout }) => {
     </div>
   );
 
+  // --- 7. INTERFAZ GRÁFICA ---
   return (
     <div className="flex min-h-screen bg-slate-50 font-sans">
       
-      {/* --- SIDEBAR --- */}
+      {/* SIDEBAR */}
       <aside className="w-64 bg-[#1e293b] text-slate-300 flex flex-col sticky top-0 h-screen">
         <div className="p-6 flex items-center gap-3">
           <div className="bg-blue-500 p-1 rounded shadow-lg shadow-blue-500/20">
@@ -67,7 +169,6 @@ const Inventory = ({ onLogout }) => {
             Sistema de Ventas<br />e Inventario - SQMIN
           </span>
         </div>
-
         <nav className="flex-1 px-4 py-4 space-y-1">
           <NavItem icon={<LayoutDashboard size={20} />} label="Dashboard" />
           <NavItem icon={<Box size={20} />} label="Inventario" active />
@@ -77,7 +178,6 @@ const Inventory = ({ onLogout }) => {
           <NavItem icon={<BarChart3 size={20} />} label="Reportes" />
           <NavItem icon={<Settings size={20} />} label="Configuración" />
         </nav>
-
         <div className="p-4 border-t border-slate-700">
           <button onClick={onLogout} className="flex items-center gap-3 px-4 py-3 text-sm hover:text-white transition-colors w-full">
             <LogOut size={20} />
@@ -86,54 +186,47 @@ const Inventory = ({ onLogout }) => {
         </div>
       </aside>
 
-      {/* --- CONTENIDO PRINCIPAL --- */}
+      {/* CONTENIDO PRINCIPAL */}
       <main className="flex-1 flex flex-col">
-        
-        {/* Header con Buscador */}
         <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10">
           <h1 className="text-lg font-bold text-slate-800 uppercase tracking-wide">
             SISTEMA DE VENTAS E INVENTARIO - ADMIN
           </h1>
-
           <div className="flex items-center gap-6">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input 
                 type="text" 
                 placeholder="Buscar productos por nombre o SKU" 
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
                 className="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-md text-sm w-80 focus:ring-2 focus:ring-blue-500 outline-none"
               />
             </div>
-            
             <div className="flex items-center gap-3 border-l pl-6 border-slate-200">
               <div className="text-right">
                 <p className="text-sm font-bold text-slate-800">Juan Pérez</p>
                 <p className="text-xs text-slate-500">Administrador</p>
               </div>
-              <img src="https://ui-avatars.com/api/?name=Juan+Perez" className="w-10 h-10 rounded-full" />
+              <img src="https://ui-avatars.com/api/?name=Juan+Perez" className="w-10 h-10 rounded-full" alt="avatar" />
             </div>
           </div>
         </header>
 
-        {/* Sección de la Tabla */}
         <section className="p-8">
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
+          {error && <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>}
 
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-3xl font-extrabold text-slate-800">GESTIÓN DE INVENTARIO</h2>
             <div className="flex gap-3">
-              <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-md">
+              <button onClick={() => setMostrarModalCrear(true)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-md">
                 <Plus size={18} /> Añadir Producto
               </button>
-              <button className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-50">
-                <Filter size={18} /> Filtros
+              <button onClick={exportarExcel} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-md">
+                <Download size={18} /> Excel
               </button>
-              <button className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-50">
-                <Download size={18} /> Exportar
+              <button onClick={exportarPDF} className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-md">
+                <Download size={18} /> PDF
               </button>
             </div>
           </div>
@@ -142,7 +235,7 @@ const Inventory = ({ onLogout }) => {
             <div className="p-6 border-b border-slate-100 flex justify-between items-center">
               <h3 className="text-lg font-bold text-slate-800">Lista de Productos</h3>
               <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded">
-                Total: {products.length} ítems
+                Total: {productosFiltrados.length} ítems
               </span>
             </div>
             <table className="w-full text-left">
@@ -151,20 +244,20 @@ const Inventory = ({ onLogout }) => {
                   <th className="px-6 py-4">SKU</th>
                   <th className="px-6 py-4">Nombre</th>
                   <th className="px-6 py-4">Categoría</th>
-                  <th className="px-6 py-4 text-right">Precio</th>
+                  <th className="px-6 py-4 text-right">Precio Venta</th>
                   <th className="px-6 py-4 text-center">Stock</th>
                   <th className="px-6 py-4 text-center">Estado</th>
                   <th className="px-6 py-4 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {products.length > 0 ? products.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 font-bold text-slate-700">{p.sku || 'N/A'}</td>
+                {productosFiltrados.length > 0 ? productosFiltrados.map((p) => (
+                  <tr key={p.idProducto} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 font-bold text-slate-700">{p.codigoBarras || 'N/A'}</td>
                     <td className="px-6 py-4 font-medium text-slate-600">{p.nombre}</td>
                     <td className="px-6 py-4 text-slate-500">{p.categoria || 'General'}</td>
                     <td className="px-6 py-4 text-right font-bold text-slate-700">
-                      ${p.precio?.toFixed(2)}
+                      ${(p.precioVenta || 0).toFixed(2)}
                     </td>
                     <td className="px-6 py-4 text-center text-slate-600 font-semibold">{p.stock}</td>
                     <td className="px-6 py-4 text-center">
@@ -176,16 +269,25 @@ const Inventory = ({ onLogout }) => {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2 text-slate-400">
-                        <button className="hover:text-blue-600"><Eye size={18} /></button>
-                        <button className="hover:text-amber-600"><Edit size={18} /></button>
-                        <button className="hover:text-red-600"><Trash2 size={18} /></button>
+                        {/* VER */}
+                        <button onClick={() => abrirModalVer(p)} className="hover:text-blue-600" title="Ver Detalles">
+                          <Eye size={18} />
+                        </button>
+                        {/* EDITAR */}
+                        <button onClick={() => abrirModalEditar(p)} className="hover:text-amber-600" title="Editar Precio">
+                          <Edit size={18} />
+                        </button>
+                        {/* ELIMINAR */}
+                        <button onClick={() => handleEliminarProducto(p.idProducto)} className="hover:text-red-600" title="Eliminar">
+                          <Trash2 size={18} />
+                        </button>
                       </div>
                     </td>
                   </tr>
                 )) : (
                   <tr>
                     <td colSpan="7" className="px-6 py-10 text-center text-slate-400">
-                      No se encontraron productos en la base de datos.
+                      No se encontraron productos en la búsqueda.
                     </td>
                   </tr>
                 )}
@@ -194,18 +296,134 @@ const Inventory = ({ onLogout }) => {
           </div>
         </section>
       </main>
+
+      {/* --- MODAL PARA AÑADIR PRODUCTO --- */}
+      {mostrarModalCrear && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4 text-slate-800">Añadir Nuevo Producto</h2>
+            <form onSubmit={handleGuardarProducto}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-slate-700">Nombre del Producto</label>
+                  <input type="text" required className="w-full border border-slate-300 p-2 rounded"
+                    value={nuevoProducto.nombre}
+                    onChange={(e) => setNuevoProducto({...nuevoProducto, nombre: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-slate-700">Código de Barras (SKU)</label>
+                  <input type="text" className="w-full border border-slate-300 p-2 rounded"
+                    value={nuevoProducto.codigoBarras}
+                    onChange={(e) => setNuevoProducto({...nuevoProducto, codigoBarras: e.target.value})} />
+                </div>
+                <div className="flex gap-4">
+                  <div className="w-1/2">
+                    <label className="block text-sm font-medium mb-1 text-slate-700">Precio Compra ($)</label>
+                    <input type="number" step="0.01" required className="w-full border border-slate-300 p-2 rounded"
+                      value={nuevoProducto.precioCompra}
+                      onChange={(e) => setNuevoProducto({...nuevoProducto, precioCompra: parseFloat(e.target.value)})} />
+                  </div>
+                  <div className="w-1/2">
+                    <label className="block text-sm font-medium mb-1 text-slate-700">Precio Venta ($)</label>
+                    <input type="number" step="0.01" required className="w-full border border-slate-300 p-2 rounded"
+                      value={nuevoProducto.precioVenta}
+                      onChange={(e) => setNuevoProducto({...nuevoProducto, precioVenta: parseFloat(e.target.value)})} />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-slate-700">Stock Inicial</label>
+                  <input type="number" required className="w-full border border-slate-300 p-2 rounded"
+                    value={nuevoProducto.stock}
+                    onChange={(e) => setNuevoProducto({...nuevoProducto, stock: parseInt(e.target.value)})} />
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end gap-3">
+                <button type="button" onClick={() => setMostrarModalCrear(false)} className="px-4 py-2 text-slate-600 border rounded hover:bg-slate-100">Cancelar</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Guardar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL PARA VER PRODUCTO (SOLO LECTURA) --- */}
+      {mostrarModalVer && productoSeleccionado && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-slate-800">Detalles del Producto</h2>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold ${productoSeleccionado.stock > 10 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                {productoSeleccionado.stock > 10 ? 'ACTIVO' : 'ALERTA STOCK'}
+              </span>
+            </div>
+            <div className="space-y-3 bg-slate-50 p-4 rounded-lg border border-slate-100">
+              <p><strong className="text-slate-600">Nombre:</strong> {productoSeleccionado.nombre}</p>
+              <p><strong className="text-slate-600">SKU:</strong> {productoSeleccionado.codigoBarras || 'N/A'}</p>
+              <div className="flex justify-between border-t border-slate-200 pt-2 mt-2">
+                <p><strong className="text-slate-600">Precio Compra:</strong> ${productoSeleccionado.precioCompra?.toFixed(2) || '0.00'}</p>
+                <p className="text-blue-600"><strong className="text-slate-600">Precio Venta:</strong> ${productoSeleccionado.precioVenta?.toFixed(2) || '0.00'}</p>
+              </div>
+              <p className="border-t border-slate-200 pt-2 mt-2"><strong className="text-slate-600">Stock Actual:</strong> {productoSeleccionado.stock} unidades</p>
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button onClick={() => setMostrarModalVer(false)} className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium">Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL PARA EDITAR PRODUCTO --- */}
+      {mostrarModalEditar && productoSeleccionado && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4 text-slate-800 flex items-center gap-2"><Edit size={20}/> Editar Producto</h2>
+            <form onSubmit={handleActualizarProducto}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-slate-700">Nombre del Producto</label>
+                  <input type="text" required className="w-full border border-slate-300 p-2 rounded bg-slate-50"
+                    value={productoSeleccionado.nombre}
+                    onChange={(e) => setProductoSeleccionado({...productoSeleccionado, nombre: e.target.value})} />
+                </div>
+                <div className="flex gap-4">
+                  <div className="w-1/2">
+                    <label className="block text-sm font-medium mb-1 text-amber-700 font-bold">Precio Compra ($)</label>
+                    <input type="number" step="0.01" required className="w-full border border-amber-300 p-2 rounded focus:ring-amber-500"
+                      value={productoSeleccionado.precioCompra || ''}
+                      onChange={(e) => setProductoSeleccionado({...productoSeleccionado, precioCompra: parseFloat(e.target.value)})} />
+                  </div>
+                  <div className="w-1/2">
+                    <label className="block text-sm font-medium mb-1 text-blue-700 font-bold">Precio Venta ($)</label>
+                    <input type="number" step="0.01" required className="w-full border border-blue-300 p-2 rounded focus:ring-blue-500"
+                      value={productoSeleccionado.precioVenta || ''}
+                      onChange={(e) => setProductoSeleccionado({...productoSeleccionado, precioVenta: parseFloat(e.target.value)})} />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-slate-700">Stock Actual</label>
+                  <input type="number" required className="w-full border border-slate-300 p-2 rounded bg-slate-50"
+                    value={productoSeleccionado.stock}
+                    onChange={(e) => setProductoSeleccionado({...productoSeleccionado, stock: parseInt(e.target.value)})} />
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end gap-3">
+                <button type="button" onClick={() => setMostrarModalEditar(false)} className="px-4 py-2 text-slate-600 border rounded hover:bg-slate-100">Cancelar</button>
+                <button type="submit" className="px-4 py-2 bg-amber-500 text-white rounded hover:bg-amber-600 font-bold">Actualizar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}        
     </div>
   );
 };
 
+// Componente del menú lateral
 const NavItem = ({ icon, label, active = false, hasArrow = false }) => (
   <div className={`flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium cursor-pointer transition-all ${
     active ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'hover:bg-white/5 hover:text-white'
   }`}>
-    <div className="flex items-center gap-3">
-      {icon}
-      <span>{label}</span>
-    </div>
+    <div className="flex items-center gap-3">{icon}<span>{label}</span></div>
     {hasArrow && <ChevronDown size={14} className="opacity-50" />}
   </div>
 );
