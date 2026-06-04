@@ -5,7 +5,7 @@ import Login from './components/Login';
 import Layout from './components/Layout';
 import Inventory from './pages/Inventory';
 import Dashboard from './pages/Dashboard'; 
-
+import NewSale from './pages/NewSale';
 function App() {
   const [estaLogueado, setEstaLogueado] = useState(!!localStorage.getItem('token'));
 
@@ -20,28 +20,15 @@ function App() {
         
         {/* 1. RUTA PÚBLICA (El Login) */}
         {/* Si ya está logueado y entra aquí, lo mandamos al inventario */}
-        <Route 
-          path="/login" 
-          element={estaLogueado ? <Navigate to="/inventario" /> : <Login onLoginSuccess={() => setEstaLogueado(true)} />} 
-        />
-
-        {/* 2. RUTAS PROTEGIDAS (El sistema con Sidebar) */}
-        {/* Si NO está logueado y entra aquí, lo pateamos al /login */}
-        <Route 
-          path="/" 
-          element={estaLogueado ? <Layout onLogout={manejarCierreSesion} /> : <Navigate to="/login" />}
-        >
-          {/* Si entran a la raíz "/", los redirigimos al inventario automáticamente */}
-          <Route index element={<Navigate to="/inventario" />} />
-          
-          {/* Las pantallas que se inyectan en el Layout */}
-          <Route path="inventario" element={<Inventory />} />
-          <Route path="dashboard" element={<Dashboard />} />
+        <Route path="/" element={estaLogueado ? <Layout onLogout={manejarCierreSesion} /> : <Navigate to="/login" />}>
+        <Route index element={<Navigate to="/dashboard" />} />
+        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="inventario" element={<Inventory />} />
+        
+        {/* NUEVAS RUTAS DE VENTAS */}
+        <Route path="ventas/nueva" element={<NewSale />} />
+          <Route path="ventas/historial" element={<div className="p-8"><h1>Historial (En construcción)</h1></div>} />
         </Route>
-
-        {/* 3. RUTA DE SEGURIDAD (Error 404) */}
-        {/* Si escriben cualquier URL rara, los mandamos al inicio */}
-        <Route path="*" element={<Navigate to="/" />} />
 
       </Routes>
     </BrowserRouter>
