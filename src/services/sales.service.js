@@ -1,22 +1,20 @@
 import axios from 'axios';
 
-// Configuración de la URL base de tu API de Spring Boot
 const API_URL = 'http://localhost:8080/api/ventas';
 
+// Configuración para incluir el Token de seguridad en cada petición
+const getAuthHeader = () => {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 export const registrarVenta = async (datosVenta) => {
-  try {
-    const token = localStorage.getItem('token');
-    
-    // Enviamos la estructura de la venta junto con el token en las cabeceras
-    const respuesta = await axios.post(API_URL, datosVenta, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    return respuesta.data;
-  } catch (error) {
-    console.error("Error en el servicio de ventas al conectar con el backend:", error);
-    throw error;
-  }
+  const response = await axios.post(API_URL, datosVenta, { headers: getAuthHeader() });
+  return response.data;
+};
+
+// 👇 NUEVA FUNCIÓN PARA EL HISTORIAL 👇
+export const obtenerHistorialVentas = async () => {
+  const response = await axios.get(API_URL, { headers: getAuthHeader() });
+  return response.data; // Esto traerá la lista con ID, total, fecha, pagoEfectivo, pagoYape, etc.
 };

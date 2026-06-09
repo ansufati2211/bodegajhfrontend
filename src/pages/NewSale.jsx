@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Trash2, ShoppingCart, ToggleLeft, ToggleRight, User, FileText } from 'lucide-react';
+import { Search, Trash2, ShoppingCart, ToggleLeft, ToggleRight, User, FileText, Banknote, Smartphone, CreditCard } from 'lucide-react';
 import { obtenerProductos } from '../services/inventory.service.js';
 import { registrarVenta } from '../services/sales.service.js';
 
@@ -11,9 +11,13 @@ const NewSale = () => {
   const [documentoCliente, setDocumentoCliente] = useState('');
   const [tipoComprobante, setTipoComprobante] = useState('BOLETA');
   
-  // NUEVO: Estado para guardar el ticket que se va a imprimir
-  const [ticketImprimir, setTicketImprimir] = useState(null);
+  // NUEVOS ESTADOS: Montos para el cobro combinado
+  const [pagoEfectivo, setPagoEfectivo] = useState('');
+  const [pagoYape, setPagoYape] = useState('');
+  const [pagoPlin, setPagoPlin] = useState('');
+  const [pagoTarjeta, setPagoTarjeta] = useState('');
 
+  const [ticketImprimir, setTicketImprimir] = useState(null);
   const lectorRef = useRef(null);
 
   useEffect(() => {
@@ -55,38 +59,73 @@ const NewSale = () => {
   const eliminarDelCarrito = (id) => setCarrito(carrito.filter(item => item.idProducto !== id));
   const total = carrito.reduce((sum, item) => sum + item.subtotal, 0);
 
-  // LA FUNCIÓN ACTUALIZADA CON IMPRESIÓN
+  // Cálculos dinámicos del dinero ingresado
+  const numEfectivo = parseFloat(pagoEfectivo) || 0;
+  const numYape = parseFloat(pagoYape) || 0;
+  const numPlin = parseFloat(pagoPlin) || 0;
+  const numTarjeta = parseFloat(pagoTarjeta) || 0;
+  const totalIngresado = numEfectivo + numYape + numPlin + numTarjeta;
+  const saldoRestante = total - totalIngresado;
+
   const handleProcesarVenta = async () => {
     if (carrito.length === 0) return alert("El carrito está vacío");
-    
+
+    // Lógica inteligente: Si todos los campos están vacíos, asumimos pago completo en efectivo
+    let finalEfectivo = numEfectivo;
+    let finalYape = numYape;
+    let finalPlin = numPlin;
+    let finalTarjeta = numTarjeta;
+
+    if (totalIngresado === 0) {
+      finalEfectivo = total;
+    } else if (Math.abs(saldoRestante) > 0.01 && saldoRestante > 0) {
+      // Si ingresaron montos pero no cubren el total
+      return alert(`Monto incompleto. Falta cubrir S/ ${saldoRestante.toFixed(2)} del total.`);
+    }
+
     const datosVenta = {
       documentoCliente: documentoCliente || 'CLIENTE GENÉRICO',
-      tipoComprobante: sunatActivo ? tipoComprobante : 'TICKET', // Ajustado a TICKET
+      tipoComprobante: sunatActivo ? tipoComprobante : 'TICKET',
       total: total,
       enviarSunat: sunatActivo,
+      // Enviamos el desglose exacto al backend
+      pagoEfectivo: finalEfectivo,
+      pagoYape: finalYape,
+      pagoPlin: finalPlin,
+      pagoTarjeta: finalTarjeta,
       detalles: carrito.map(item => ({ idProducto: item.idProducto, cantidad: item.cantidad, precioUnitario: item.precioVenta }))
     };
 
     try {
       await registrarVenta(datosVenta);
       
-      // 1. Guardamos los datos para el ticket en pantalla
+      // Guardamos la información incluyendo cómo pagó para el ticket impreso
       setTicketImprimir({
         tipo: sunatActivo ? tipoComprobante : 'TICKET DE VENTA',
         cliente: documentoCliente || 'Público General',
         fecha: new Date().toLocaleString(),
         items: [...carrito],
-        total: total
+        total: total,
+        pagos: {
+          efectivo: finalEfectivo,
+          yape: finalYape,
+          plin: finalPlin,
+          tarjeta: finalTarjeta,
+          vuelto: saldoRestante < 0 ? Math.abs(saldoRestante) : 0
+        }
       });
 
-      // 2. Limpiamos la pantalla
+      // Limpiamos los estados de la interfaz
       setCarrito([]);
       setDocumentoCliente('');
+      setPagoEfectivo('');
+      setPagoYape('');
+      setPagoPlin('');
+      setPagoTarjeta('');
       
-      // 3. Activamos la ventana de impresión del navegador
       setTimeout(() => {
         window.print();
-      }, 500); // Medio segundo para que React dibuje el ticket antes de imprimir
+      }, 500);
 
     } catch (error) {
       alert("No se pudo registrar la venta.");
@@ -95,33 +134,22 @@ const NewSale = () => {
 
   return (
     <>
-      {/* ESTILOS MÁGICOS DE IMPRESIÓN 
-        Ocultan todo el sistema y solo muestran el ticket cuando presionas Imprimir
-      */}
       <style>
         {`
           @media print {
             body * { visibility: hidden; }
             #zona-impresion, #zona-impresion * { visibility: visible; }
-            #zona-impresion { 
-              position: absolute; 
-              left: 0; top: 0; 
-              width: 80mm; 
-              padding: 10px;
-              font-family: monospace;
-              color: black;
-            }
+            #zona-impresion { position: absolute; left: 0; top: 0; width: 80mm; padding: 10px; font-family: monospace; color: black; }
           }
         `}
       </style>
 
-      {/* TICKET DE IMPRESIÓN (Solo visible en el papel) */}
+      {/* TICKET DE IMPRESIÓN CON DETALLE DE PAGO COMBINADO */}
       <div id="zona-impresion" className="hidden print:block bg-white text-xs">
         {ticketImprimir && (
           <div className="w-full">
-            <h2 className="text-center font-bold text-lg mb-1">SISTEMA SQMIN</h2>
-            <p className="text-center mb-1">RUC: 20123456789</p>
-            <p className="text-center mb-4">Av. Principal 123, Ciudad</p>
+            <h2 className="text-center font-bold text-lg mb-1">BODEGA JH</h2>
+            <p className="text-center mb-4">Av. Principal 123, Ica</p>
             
             <p className="font-bold border-b border-black border-dashed pb-2 mb-2">
               {ticketImprimir.tipo} <br />
@@ -136,7 +164,7 @@ const NewSale = () => {
                   <th>DESCRIPCIÓN</th>
                   <th className="text-right">IMPORTE</th>
                 </tr>
-            </thead>
+              </thead>
               <tbody>
                 {ticketImprimir.items.map((item, idx) => (
                   <tr key={idx}>
@@ -148,26 +176,36 @@ const NewSale = () => {
               </tbody>
             </table>
 
-            <div className="flex justify-between font-bold text-sm border-t border-black border-dashed pt-2">
+            <div className="flex justify-between font-bold text-sm border-t border-black border-dashed pt-2 mb-2">
               <span>TOTAL A PAGAR:</span>
               <span>S/ {ticketImprimir.total.toFixed(2)}</span>
             </div>
+
+            {/* SECCIÓN NUEVA: Desglose del pago en el papel del ticket */}
+            <div className="text-[10px] border-b border-black border-dashed pb-2 mb-2">
+              <p className="font-bold">Forma de Pago:</p>
+              {ticketImprimir.pagos.efectivo > 0 && <div className="flex justify-between"><span>- Efectivo:</span><span>S/ {ticketImprimir.pagos.efectivo.toFixed(2)}</span></div>}
+              {ticketImprimir.pagos.yape > 0 && <div className="flex justify-between"><span>- Yape:</span><span>S/ {ticketImprimir.pagos.yape.toFixed(2)}</span></div>}
+              {ticketImprimir.pagos.plin > 0 && <div className="flex justify-between"><span>- Plin:</span><span>S/ {ticketImprimir.pagos.plin.toFixed(2)}</span></div>}
+              {ticketImprimir.pagos.tarjeta > 0 && <div className="flex justify-between"><span>- Tarjeta:</span><span>S/ {ticketImprimir.pagos.tarjeta.toFixed(2)}</span></div>}
+              {ticketImprimir.pagos.vuelto > 0 && <div className="flex justify-between font-bold mt-1"><span>Vuelto:</span><span>S/ {ticketImprimir.pagos.vuelto.toFixed(2)}</span></div>}
+            </div>
             
-            <p className="text-center mt-6 text-[10px]">¡Gracias por su compra!</p>
-            <p className="text-center text-[10px]">Conserve este ticket para devoluciones.</p>
+            <p className="text-center mt-4 text-[10px]">¡Gracias por su compra!</p>
           </div>
         )}
       </div>
 
-      {/* --- EL RESTO DE TU PANTALLA POS INTACTA (Oculta al imprimir) --- */}
+      {/* INTERFAZ DEL PUNTO DE VENTA */}
       <div className="flex flex-col h-full bg-slate-100 font-sans print:hidden">
         <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10">
           <h1 className="text-lg font-bold text-slate-800 uppercase tracking-wide flex items-center gap-2">
-            <ShoppingCart className="text-blue-600" size={22} /> NUEVA VENTA
+            <ShoppingCart className="text-blue-600" size={22} /> PUNTO DE VENTA (SISTEMA DE VENTAS)
           </h1>
         </header>
 
         <div className="flex-1 flex p-6 gap-6 h-[calc(100vh-80px)] overflow-hidden">
+          {/* LADO IZQUIERDO: Buscador e ítems del carrito */}
           <div className="flex-1 flex flex-col bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden p-6">
             <form onSubmit={handleBusquedaProducto} className="mb-6 flex gap-3">
               <div className="relative flex-1">
@@ -214,55 +252,104 @@ const NewSale = () => {
             </div>
           </div>
 
-          <div className="w-96 flex flex-col gap-6">
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2"><FileText size={16} /> Facturación</h3>
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200 mb-4">
-                <span className="text-sm font-semibold text-slate-700">Conexión SUNAT</span>
+          {/* LADO DERECHO: Facturación y Cobro Combinado Integrado */}
+          <div className="w-[420px] flex flex-col gap-4 overflow-y-auto pr-1">
+            
+            {/* PANEL DE FACTURACIÓN Y CONTROL DE PAGOS MULTIPLES */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <FileText size={16} /> Comprobante y Facturación
+              </h3>
+              
+              <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200 mb-3">
+                <span className="text-xs font-semibold text-slate-700">Enviar a SUNAT</span>
                 <button type="button" onClick={() => setSunatActivo(!sunatActivo)} className="focus:outline-none transition-colors">
-                  {sunatActivo ? <ToggleRight size={44} className="text-green-500" /> : <ToggleLeft size={44} className="text-slate-400" />}
+                  {sunatActivo ? <ToggleRight size={38} className="text-green-500" /> : <ToggleLeft size={38} className="text-slate-400" />}
                 </button>
               </div>
-              {sunatActivo ? (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tipo de Comprobante</label>
-                    <div className="flex gap-2">
-                      <button type="button" onClick={() => setTipoComprobante('BOLETA')} className={`flex-1 py-2 text-xs font-bold rounded border ${tipoComprobante === 'BOLETA' ? 'bg-blue-50 border-blue-500 text-blue-600' : 'bg-white border-slate-200 text-slate-600'}`}>BOLETA</button>
-                      <button type="button" onClick={() => setTipoComprobante('FACTURA')} className={`flex-1 py-2 text-xs font-bold rounded border ${tipoComprobante === 'FACTURA' ? 'bg-blue-50 border-blue-500 text-blue-600' : 'bg-white border-slate-200 text-slate-600'}`}>FACTURA</button>
-                    </div>
+
+              {sunatActivo && (
+                <div className="space-y-3 mb-4 border-b border-slate-100 pb-3">
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setTipoComprobante('BOLETA')} className={`flex-1 py-2 text-xs font-bold rounded border ${tipoComprobante === 'BOLETA' ? 'bg-blue-50 border-blue-500 text-blue-600' : 'bg-white border-slate-200 text-slate-600'}`}>BOLETA</button>
+                    <button type="button" onClick={() => setTipoComprobante('FACTURA')} className={`flex-1 py-2 text-xs font-bold rounded border ${tipoComprobante === 'FACTURA' ? 'bg-blue-50 border-blue-500 text-blue-600' : 'bg-white border-slate-200 text-slate-600'}`}>FACTURA</button>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Documento Cliente</label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                      <input type="text" placeholder="DNI o RUC" value={documentoCliente} onChange={(e) => setDocumentoCliente(e.target.value)} className="pl-9 pr-4 py-2 border border-slate-300 rounded-md text-sm w-full outline-none" />
-                    </div>
+                    <input type="text" placeholder={tipoComprobante === 'BOLETA' ? "DNI del Cliente (8 dígitos)" : "RUC de la Empresa (11 dígitos)"} value={documentoCliente} onChange={(e) => setDocumentoCliente(e.target.value)} className="px-3 py-2 border border-slate-300 rounded-md text-xs w-full outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
                 </div>
-              ) : (
-                <p className="text-xs text-slate-400 italic text-center">Ticket de control interno.</p>
+              )}
+
+              {/* INTEGRACIÓN DEL COBRO MULTIPLE EN LÍNEA */}
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-4 mb-3 border-t border-slate-100 pt-3 flex items-center gap-2">
+                <Banknote size={15} /> Desglose de Pago Combinado
+              </h3>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 relative">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 mb-1">
+                    <Banknote size={12} className="text-green-600" /> Efectivo (S/)
+                  </label>
+                  <input type="number" min="0" placeholder="0.00" value={pagoEfectivo} onChange={(e) => setPagoEfectivo(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-sm font-semibold outline-none text-slate-800" />
+                </div>
+
+                <div className="bg-purple-50 p-2 rounded-lg border border-purple-200 relative">
+                  <label className="text-[10px] font-bold text-purple-600 uppercase flex items-center gap-1 mb-1">
+                    <Smartphone size={12} className="text-purple-600" /> Yape (S/)
+                  </label>
+                  <input type="number" min="0" placeholder="0.00" value={pagoYape} onChange={(e) => setPagoYape(e.target.value)} className="w-full bg-white border border-purple-300 rounded px-2 py-1 text-sm font-semibold outline-none text-purple-800" />
+                </div>
+
+                <div className="bg-cyan-50 p-2 rounded-lg border border-cyan-200 relative">
+                  <label className="text-[10px] font-bold text-cyan-600 uppercase flex items-center gap-1 mb-1">
+                    <Smartphone size={12} className="text-cyan-600" /> Plin (S/)
+                  </label>
+                  <input type="number" min="0" placeholder="0.00" value={pagoPlin} onChange={(e) => setPagoPlin(e.target.value)} className="w-full bg-white border border-cyan-300 rounded px-2 py-1 text-sm font-semibold outline-none text-cyan-800" />
+                </div>
+
+                <div className="bg-blue-50 p-2 rounded-lg border border-blue-200 relative">
+                  <label className="text-[10px] font-bold text-blue-600 uppercase flex items-center gap-1 mb-1">
+                    <CreditCard size={12} className="text-blue-600" /> Tarjeta (S/)
+                  </label>
+                  <input type="number" min="0" placeholder="0.00" value={pagoTarjeta} onChange={(e) => setPagoTarjeta(e.target.value)} className="w-full bg-white border border-blue-300 rounded px-2 py-1 text-sm font-semibold outline-none text-slate-800" />
+                </div>
+              </div>
+
+              {/* VISUALIZADOR DEL MONTO EN TIEMPO REAL */}
+              {total > 0 && (
+                <div className={`mt-4 p-2.5 rounded-lg text-center text-xs font-bold border ${saldoRestante > 0 ? 'bg-amber-50 border-amber-300 text-amber-700' : 'bg-emerald-50 border-emerald-300 text-emerald-700'}`}>
+                  {saldoRestante > 0 ? (
+                    <span>Falta cubrir: S/ {saldoRestante.toFixed(2)}</span>
+                  ) : saldoRestante < 0 ? (
+                    <span>Vuelto a entregar: S/ {Math.abs(saldoRestante).toFixed(2)}</span>
+                  ) : (
+                    <span>¡Monto exacto cubierto! S/ {totalIngresado.toFixed(2)}</span>
+                  )}
+                </div>
               )}
             </div>
 
-            <div className="bg-slate-900 text-white rounded-xl shadow-xl p-6 flex flex-col flex-1 justify-between">
+            {/* RESUMEN DE COBRO Y BOTÓN IMPRIMIR */}
+            <div className="bg-slate-900 text-white rounded-xl shadow-xl p-5 flex flex-col justify-between">
               <div>
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-6">Resumen de Cobro</h3>
-                <div className="space-y-3 border-b border-slate-800 pb-4">
-                  <div className="flex justify-between text-sm text-slate-400"><span>Subtotal</span><span>S/ {(total / 1.18).toFixed(2)}</span></div>
-                  <div className="flex justify-between text-sm text-slate-400"><span>IGV (18%)</span><span>S/ {(total - (total / 1.18)).toFixed(2)}</span></div>
+                <div className="flex justify-between text-xs text-slate-400 mb-2">
+                  <span>Subtotal</span><span>S/ {(total / 1.18).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-xs text-slate-400 border-b border-slate-800 pb-3">
+                  <span>IGV (18%)</span><span>S/ {(total - (total / 1.18)).toFixed(2)}</span>
                 </div>
               </div>
-              <div className="mt-6">
-                <div className="flex justify-between items-baseline mb-6">
-                  <span className="text-lg font-bold text-slate-400">TOTAL:</span>
-                  <span className="text-4xl font-extrabold text-blue-400">S/ {total.toFixed(2)}</span>
+              <div className="mt-4">
+                <div className="flex justify-between items-baseline mb-4">
+                  <span className="text-sm font-bold text-slate-400">TOTAL:</span>
+                  <span className="text-3xl font-extrabold text-blue-400">S/ {total.toFixed(2)}</span>
                 </div>
-                <button onClick={handleProcesarVenta} className="w-full bg-blue-600 hover:bg-blue-500 text-white text-center py-4 rounded-xl font-bold text-lg">
-                  Imprimir Ticket
+                <button onClick={handleProcesarVenta} className="w-full bg-blue-600 hover:bg-blue-500 text-white text-center py-3.5 rounded-xl font-bold text-base transition-all shadow-md">
+                  {sunatActivo ? 'Emitir Comprobante' : 'Imprimir Ticket'}
                 </button>
               </div>
             </div>
+
           </div>
         </div>
       </div>
