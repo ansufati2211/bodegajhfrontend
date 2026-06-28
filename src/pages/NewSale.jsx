@@ -11,11 +11,14 @@ const NewSale = () => {
   const [documentoCliente, setDocumentoCliente] = useState('');
   const [tipoComprobante, setTipoComprobante] = useState('BOLETA');
   
-  // NUEVOS ESTADOS: Montos para el cobro combinado
+  // ESTADOS DE PAGO
   const [pagoEfectivo, setPagoEfectivo] = useState('');
   const [pagoYape, setPagoYape] = useState('');
   const [pagoPlin, setPagoPlin] = useState('');
   const [pagoTarjeta, setPagoTarjeta] = useState('');
+
+  // 🚨 NUEVO ESTADO: SEGURO ANTI-DOBLE-CLIC 🚨
+  const [procesando, setProcesando] = useState(false);
 
   const [ticketImprimir, setTicketImprimir] = useState(null);
   const lectorRef = useRef(null);
@@ -59,7 +62,6 @@ const NewSale = () => {
   const eliminarDelCarrito = (id) => setCarrito(carrito.filter(item => item.idProducto !== id));
   const total = carrito.reduce((sum, item) => sum + item.subtotal, 0);
 
-  // Cálculos dinámicos del dinero ingresado
   const numEfectivo = parseFloat(pagoEfectivo) || 0;
   const numYape = parseFloat(pagoYape) || 0;
   const numPlin = parseFloat(pagoPlin) || 0;
@@ -69,8 +71,10 @@ const NewSale = () => {
 
   const handleProcesarVenta = async () => {
     if (carrito.length === 0) return alert("El carrito está vacío");
+    
+    // 🚨 SI YA ESTÁ PROCESANDO, IGNORAMOS LOS CLICS EXTRA 🚨
+    if (procesando) return;
 
-    // Lógica inteligente: Si todos los campos están vacíos, asumimos pago completo en efectivo
     let finalEfectivo = numEfectivo;
     let finalYape = numYape;
     let finalPlin = numPlin;
@@ -79,7 +83,6 @@ const NewSale = () => {
     if (totalIngresado === 0) {
       finalEfectivo = total;
     } else if (Math.abs(saldoRestante) > 0.01 && saldoRestante > 0) {
-      // Si ingresaron montos pero no cubren el total
       return alert(`Monto incompleto. Falta cubrir S/ ${saldoRestante.toFixed(2)} del total.`);
     }
 
@@ -88,7 +91,6 @@ const NewSale = () => {
       tipoComprobante: sunatActivo ? tipoComprobante : 'TICKET',
       total: total,
       enviarSunat: sunatActivo,
-      // Enviamos el desglose exacto al backend
       pagoEfectivo: finalEfectivo,
       pagoYape: finalYape,
       pagoPlin: finalPlin,
@@ -97,9 +99,11 @@ const NewSale = () => {
     };
 
     try {
+      // 🚨 BLOQUEAMOS EL BOTÓN JUSTO ANTES DE HABLAR CON JAVA 🚨
+      setProcesando(true);
+      
       await registrarVenta(datosVenta);
       
-      // Guardamos la información incluyendo cómo pagó para el ticket impreso
       setTicketImprimir({
         tipo: sunatActivo ? tipoComprobante : 'TICKET DE VENTA',
         cliente: documentoCliente || 'Público General',
@@ -115,7 +119,6 @@ const NewSale = () => {
         }
       });
 
-      // Limpiamos los estados de la interfaz
       setCarrito([]);
       setDocumentoCliente('');
       setPagoEfectivo('');
@@ -129,6 +132,9 @@ const NewSale = () => {
 
     } catch (error) {
       alert("No se pudo registrar la venta.");
+    } finally {
+      // 🚨 DESBLOQUEAMOS EL BOTÓN AL TERMINAR (HAYA HABIDO ÉXITO O ERROR) 🚨
+      setProcesando(false);
     }
   };
 
@@ -144,7 +150,7 @@ const NewSale = () => {
         `}
       </style>
 
-      {/* TICKET DE IMPRESIÓN CON DETALLE DE PAGO COMBINADO */}
+      {/* TICKET DE IMPRESIÓN */}
       <div id="zona-impresion" className="hidden print:block bg-white text-xs">
         {ticketImprimir && (
           <div className="w-full">
@@ -181,7 +187,6 @@ const NewSale = () => {
               <span>S/ {ticketImprimir.total.toFixed(2)}</span>
             </div>
 
-            {/* SECCIÓN NUEVA: Desglose del pago en el papel del ticket */}
             <div className="text-[10px] border-b border-black border-dashed pb-2 mb-2">
               <p className="font-bold">Forma de Pago:</p>
               {ticketImprimir.pagos.efectivo > 0 && <div className="flex justify-between"><span>- Efectivo:</span><span>S/ {ticketImprimir.pagos.efectivo.toFixed(2)}</span></div>}
@@ -196,7 +201,6 @@ const NewSale = () => {
         )}
       </div>
 
-      {/* INTERFAZ DEL PUNTO DE VENTA */}
       <div className="flex flex-col h-full bg-slate-100 font-sans print:hidden">
         <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10">
           <h1 className="text-lg font-bold text-slate-800 uppercase tracking-wide flex items-center gap-2">
@@ -205,7 +209,7 @@ const NewSale = () => {
         </header>
 
         <div className="flex-1 flex p-6 gap-6 h-[calc(100vh-80px)] overflow-hidden">
-          {/* LADO IZQUIERDO: Buscador e ítems del carrito */}
+          {/* LADO IZQUIERDO */}
           <div className="flex-1 flex flex-col bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden p-6">
             <form onSubmit={handleBusquedaProducto} className="mb-6 flex gap-3">
               <div className="relative flex-1">
@@ -252,10 +256,8 @@ const NewSale = () => {
             </div>
           </div>
 
-          {/* LADO DERECHO: Facturación y Cobro Combinado Integrado */}
+          {/* LADO DERECHO */}
           <div className="w-[420px] flex flex-col gap-4 overflow-y-auto pr-1">
-            
-            {/* PANEL DE FACTURACIÓN Y CONTROL DE PAGOS MULTIPLES */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
               <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                 <FileText size={16} /> Comprobante y Facturación
@@ -280,7 +282,6 @@ const NewSale = () => {
                 </div>
               )}
 
-              {/* INTEGRACIÓN DEL COBRO MULTIPLE EN LÍNEA */}
               <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-4 mb-3 border-t border-slate-100 pt-3 flex items-center gap-2">
                 <Banknote size={15} /> Desglose de Pago Combinado
               </h3>
@@ -315,7 +316,6 @@ const NewSale = () => {
                 </div>
               </div>
 
-              {/* VISUALIZADOR DEL MONTO EN TIEMPO REAL */}
               {total > 0 && (
                 <div className={`mt-4 p-2.5 rounded-lg text-center text-xs font-bold border ${saldoRestante > 0 ? 'bg-amber-50 border-amber-300 text-amber-700' : 'bg-emerald-50 border-emerald-300 text-emerald-700'}`}>
                   {saldoRestante > 0 ? (
@@ -329,7 +329,6 @@ const NewSale = () => {
               )}
             </div>
 
-            {/* RESUMEN DE COBRO Y BOTÓN IMPRIMIR */}
             <div className="bg-slate-900 text-white rounded-xl shadow-xl p-5 flex flex-col justify-between">
               <div>
                 <div className="flex justify-between text-xs text-slate-400 mb-2">
@@ -344,8 +343,13 @@ const NewSale = () => {
                   <span className="text-sm font-bold text-slate-400">TOTAL:</span>
                   <span className="text-3xl font-extrabold text-blue-400">S/ {total.toFixed(2)}</span>
                 </div>
-                <button onClick={handleProcesarVenta} className="w-full bg-blue-600 hover:bg-blue-500 text-white text-center py-3.5 rounded-xl font-bold text-base transition-all shadow-md">
-                  {sunatActivo ? 'Emitir Comprobante' : 'Imprimir Ticket'}
+                {/* 🚨 BOTÓN ACTUALIZADO QUE SE PONE GRIS MIENTRAS CARGA 🚨 */}
+                <button 
+                  onClick={handleProcesarVenta} 
+                  disabled={procesando}
+                  className={`w-full text-white text-center py-3.5 rounded-xl font-bold text-base transition-all shadow-md ${procesando ? 'bg-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'}`}
+                >
+                  {procesando ? 'Procesando Venta...' : (sunatActivo ? 'Emitir Comprobante' : 'Imprimir Ticket')}
                 </button>
               </div>
             </div>

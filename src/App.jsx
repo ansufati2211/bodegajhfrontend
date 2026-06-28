@@ -23,14 +23,20 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Ruta pública */}
-        <Route path="/login" element={<Login />} />
+        {/* RUTA PÚBLICA: Si ya está logueado, lo mandamos al inventario. Si no, le mostramos el Login y le pasamos la función */}
+        <Route 
+          path="/login" 
+          element={!estaLogueado ? <Login onLoginSuccess={manejarIngresoExitoso} /> : <Navigate to="/inventario" />} 
+        />
         
-        {/* 1. LA RUTA MADRE (El Layout) */}
-        <Route path="/" element={<Layout />}>
+        {/* LA RUTA MADRE (Protegida): Si está logueado, dibuja el Layout y le pasa la función de salir. Si no, lo patea al login */}
+        <Route 
+          path="/" 
+          element={estaLogueado ? <Layout onLogout={manejarCierreSesion} /> : <Navigate to="/login" />}
+        >
           
-          {/* 2. LAS RUTAS HIJAS (Se renderizan en el <Outlet /> del Layout) */}
-          <Route index element={<Navigate to="/dashboard" />} />
+          {/* LAS RUTAS HIJAS */}
+          <Route index element={<Navigate to="/inventario" />} /> {/* <- Redirige por defecto al inventario */}
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="inventario" element={<Inventory />} />
           
@@ -43,5 +49,4 @@ function App() {
     </BrowserRouter>
   );
 }
-
 export default App;

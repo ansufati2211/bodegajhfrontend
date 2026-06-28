@@ -1,43 +1,42 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // 1. ¡NUEVO! Importamos el navegador
 import { Mail, Lock, Eye, EyeOff, Box } from 'lucide-react';
 import { iniciarSesion } from '../services/auth.service';
 
-// 1. NUEVO: Agregamos { onLoginSuccess } aquí adentro
 const Login = ({ onLoginSuccess }) => {
+  const navigate = useNavigate(); // 2. ¡NUEVO! Preparamos el "taxi"
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
-  // 2. NUEVO: Estados para manejar errores y botones de carga
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // 3. NUEVO: Transformamos esta función a 'async' y llamamos al backend
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(''); // Limpiamos errores anteriores
-    setLoading(true); // Encendemos el estado de carga
+    setError(''); 
+    setLoading(true); 
 
     try {
-      // Llamamos al servicio que se comunica con Spring Boot
       await iniciarSesion(email, password);
       
-      // Si pasa a la siguiente línea sin caer al catch, ¡el login fue exitoso!
       if (onLoginSuccess) {
         onLoginSuccess();
       }
+      
+      // 3. ¡NUEVO! LA LÍNEA MÁGICA QUE FALTABA
+      navigate('/inventario'); // <-- Esto es lo que te redirige automáticamente
+      
     } catch (err) {
-      // Si Spring Boot rechaza la contraseña o hay error, mostramos esto:
       setError('Correo o contraseña incorrectos.');
     } finally {
-      setLoading(false); // Apagamos el estado de carga
+      setLoading(false); 
     }
   };
   
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 font-sans">
       
-      {/* Sección del Logo y Título */}
       <div className="flex items-center mb-8 gap-4">
         <div className="text-blue-500">
           <Box size={48} strokeWidth={1.5} />
@@ -52,7 +51,6 @@ const Login = ({ onLoginSuccess }) => {
           INICIAR SESIÓN
         </h2>
 
-        {/* 4. NUEVO: Caja roja para mostrar el mensaje de error si falla */}
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-md text-center">
             {error}
@@ -61,7 +59,6 @@ const Login = ({ onLoginSuccess }) => {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           
-          {/* Input: Correo Electrónico (QUEDA IGUAL) */}
           <div>
             <label className="block text-sm text-slate-700 mb-1">
               Correo Electrónico
@@ -81,7 +78,6 @@ const Login = ({ onLoginSuccess }) => {
             </div>
           </div>
 
-          {/* Input: Contraseña (QUEDA IGUAL) */}
           <div>
             <label className="block text-sm text-slate-700 mb-1">
               Contraseña
@@ -121,7 +117,6 @@ const Login = ({ onLoginSuccess }) => {
             </label>
           </div>
 
-          {/* 5. NUEVO: Botón actualizado para desactivarse mientras carga */}
           <button
             type="submit"
             disabled={loading}
