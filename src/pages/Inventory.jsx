@@ -4,11 +4,9 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { obtenerProductos, crearProducto, actualizarProducto, eliminarProducto } from '../services/inventory.service';
-import { useNavigate } from 'react-router-dom';
+// Se eliminó useNavigate porque no se utiliza en este componente
 
 const Inventory = () => {
-  const navigate = useNavigate();
-
   // --- 1. ESTADOS DE LA APLICACIÓN ---
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,14 +39,16 @@ const Inventory = () => {
     }
   };
 
-  useEffect(() => {
-    fetchInventory();
+useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchInventory(); 
   }, []);
 
   // --- 3. LÓGICA DEL BUSCADOR ---
+  // Solución S6582: Uso de optional chaining (?.)
   const productosFiltrados = products.filter(producto => 
-    (producto.nombre && producto.nombre.toLowerCase().includes(busqueda.toLowerCase())) || 
-    (producto.codigoBarras && producto.codigoBarras.includes(busqueda))
+    (producto.nombre?.toLowerCase().includes(busqueda.toLowerCase())) || 
+    (producto.codigoBarras?.includes(busqueda))
   );
 
   // --- 4. LÓGICA DE EXPORTACIÓN ---
@@ -126,7 +126,8 @@ const Inventory = () => {
 
   // Eliminar (Borrado Lógico)
   const handleEliminarProducto = async (id) => {
-    if (window.confirm("¿Estás seguro de que deseas eliminar este producto? Esta acción no se puede deshacer.")) {
+    // Solución S7764: Uso de globalThis en lugar de window
+    if (globalThis.confirm("¿Estás seguro de que deseas eliminar este producto? Esta acción no se puede deshacer.")) {
       try {
         await eliminarProducto(id);
         await fetchInventory(); 
@@ -152,7 +153,6 @@ const Inventory = () => {
   return (
     <div className="flex-1 flex flex-col bg-slate-50 min-h-screen">
       
-      {/* HEADER DE LA PÁGINA (Sin el Sidebar, que ahora está en Layout) */}
       <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10">
         <h1 className="text-lg font-bold text-slate-800 uppercase tracking-wide">
           SISTEMA DE VENTAS E INVENTARIO - ADMIN
@@ -170,15 +170,14 @@ const Inventory = () => {
           </div>
           <div className="flex items-center gap-3 border-l pl-6 border-slate-200">
             <div className="text-right">
-              <p className="text-sm font-bold text-slate-800">Juan Pérez</p>
+              <p className="text-sm font-bold text-slate-800">Gabriel Yllescas</p>
               <p className="text-xs text-slate-500">Administrador</p>
             </div>
-            <img src="https://ui-avatars.com/api/?name=Juan+Perez" className="w-10 h-10 rounded-full" alt="avatar" />
+            <img src="https://ui-avatars.com/api/?name=Gabriel+Yllescas&background=0D8ABC&color=fff" className="w-10 h-10 rounded-full" alt="avatar" />
           </div>
         </div>
       </header>
 
-      {/* CONTENIDO PRINCIPAL: TABLA DE PRODUCTOS */}
       <section className="p-8">
         {error && <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>}
 
@@ -221,7 +220,7 @@ const Inventory = () => {
                 <tr key={p.idProducto} className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4 font-bold text-slate-700">{p.codigoBarras || 'N/A'}</td>
                   <td className="px-6 py-4 font-medium text-slate-600">{p.nombre}</td>
-                  <td className="px-6 py-4 text-slate-500">{p.categoria || 'General'}</td>
+                  <td className="px-6 py-4 text-slate-500">{p.categoria?.nombre || 'General'}</td>
                   <td className="px-6 py-4 text-right font-bold text-slate-700">
                     ${(p.precioVenta || 0).toFixed(2)}
                   </td>
@@ -235,13 +234,13 @@ const Inventory = () => {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2 text-slate-400">
-                      <button onClick={() => abrirModalVer(p)} className="hover:text-blue-600" title="Ver Detalles">
+                      <button type="button" onClick={() => abrirModalVer(p)} className="hover:text-blue-600 border-none bg-transparent cursor-pointer" title="Ver Detalles">
                         <Eye size={18} />
                       </button>
-                      <button onClick={() => abrirModalEditar(p)} className="hover:text-amber-600" title="Editar Precio">
+                      <button type="button" onClick={() => abrirModalEditar(p)} className="hover:text-amber-600 border-none bg-transparent cursor-pointer" title="Editar Precio">
                         <Edit size={18} />
                       </button>
-                      <button onClick={() => handleEliminarProducto(p.idProducto)} className="hover:text-red-600" title="Eliminar">
+                      <button type="button" onClick={() => handleEliminarProducto(p.idProducto)} className="hover:text-red-600 border-none bg-transparent cursor-pointer" title="Eliminar">
                         <Trash2 size={18} />
                       </button>
                     </div>
@@ -269,36 +268,36 @@ const Inventory = () => {
             <form onSubmit={handleGuardarProducto}>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-slate-700">Nombre del Producto</label>
-                  <input type="text" required className="w-full border border-slate-300 p-2 rounded"
+                  <label htmlFor="crear-nombre" className="block text-sm font-medium mb-1 text-slate-700">Nombre del Producto</label>
+                  <input id="crear-nombre" type="text" required className="w-full border border-slate-300 p-2 rounded"
                     value={nuevoProducto.nombre}
                     onChange={(e) => setNuevoProducto({...nuevoProducto, nombre: e.target.value})} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-slate-700">Código de Barras (SKU)</label>
-                  <input type="text" className="w-full border border-slate-300 p-2 rounded"
+                  <label htmlFor="crear-sku" className="block text-sm font-medium mb-1 text-slate-700">Código de Barras (SKU)</label>
+                  <input id="crear-sku" type="text" className="w-full border border-slate-300 p-2 rounded"
                     value={nuevoProducto.codigoBarras}
                     onChange={(e) => setNuevoProducto({...nuevoProducto, codigoBarras: e.target.value})} />
                 </div>
                 <div className="flex gap-4">
                   <div className="w-1/2">
-                    <label className="block text-sm font-medium mb-1 text-slate-700">Precio Compra ($)</label>
-                    <input type="number" step="0.01" required className="w-full border border-slate-300 p-2 rounded"
+                    <label htmlFor="crear-precioCompra" className="block text-sm font-medium mb-1 text-slate-700">Precio Compra ($)</label>
+                    <input id="crear-precioCompra" type="number" step="0.01" required className="w-full border border-slate-300 p-2 rounded"
                       value={nuevoProducto.precioCompra}
-                      onChange={(e) => setNuevoProducto({...nuevoProducto, precioCompra: parseFloat(e.target.value)})} />
+                      onChange={(e) => setNuevoProducto({...nuevoProducto, precioCompra: e.target.value ? Number.parseFloat(e.target.value) : ''})} />
                   </div>
                   <div className="w-1/2">
-                    <label className="block text-sm font-medium mb-1 text-slate-700">Precio Venta ($)</label>
-                    <input type="number" step="0.01" required className="w-full border border-slate-300 p-2 rounded"
+                    <label htmlFor="crear-precioVenta" className="block text-sm font-medium mb-1 text-slate-700">Precio Venta ($)</label>
+                    <input id="crear-precioVenta" type="number" step="0.01" required className="w-full border border-slate-300 p-2 rounded"
                       value={nuevoProducto.precioVenta}
-                      onChange={(e) => setNuevoProducto({...nuevoProducto, precioVenta: parseFloat(e.target.value)})} />
+                      onChange={(e) => setNuevoProducto({...nuevoProducto, precioVenta: e.target.value ? Number.parseFloat(e.target.value) : ''})} />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-slate-700">Stock Inicial</label>
-                  <input type="number" required className="w-full border border-slate-300 p-2 rounded"
+                  <label htmlFor="crear-stock" className="block text-sm font-medium mb-1 text-slate-700">Stock Inicial</label>
+                  <input id="crear-stock" type="number" required className="w-full border border-slate-300 p-2 rounded"
                     value={nuevoProducto.stock}
-                    onChange={(e) => setNuevoProducto({...nuevoProducto, stock: parseInt(e.target.value)})} />
+                    onChange={(e) => setNuevoProducto({...nuevoProducto, stock: e.target.value ? Number.parseInt(e.target.value, 10) : ''})} />
                 </div>
               </div>
               <div className="mt-6 flex justify-end gap-3">
@@ -330,7 +329,7 @@ const Inventory = () => {
               <p className="border-t border-slate-200 pt-2 mt-2"><strong className="text-slate-600">Stock Actual:</strong> {productoSeleccionado.stock} unidades</p>
             </div>
             <div className="mt-6 flex justify-end">
-              <button onClick={() => setMostrarModalVer(false)} className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium">Cerrar</button>
+              <button type="button" onClick={() => setMostrarModalVer(false)} className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium">Cerrar</button>
             </div>
           </div>
         </div>
@@ -344,30 +343,30 @@ const Inventory = () => {
             <form onSubmit={handleActualizarProducto}>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-slate-700">Nombre del Producto</label>
-                  <input type="text" required className="w-full border border-slate-300 p-2 rounded bg-slate-50"
+                  <label htmlFor="editar-nombre" className="block text-sm font-medium mb-1 text-slate-700">Nombre del Producto</label>
+                  <input id="editar-nombre" type="text" required className="w-full border border-slate-300 p-2 rounded bg-slate-50"
                     value={productoSeleccionado.nombre}
                     onChange={(e) => setProductoSeleccionado({...productoSeleccionado, nombre: e.target.value})} />
                 </div>
                 <div className="flex gap-4">
                   <div className="w-1/2">
-                    <label className="block text-sm font-medium mb-1 text-amber-700 font-bold">Precio Compra ($)</label>
-                    <input type="number" step="0.01" required className="w-full border border-amber-300 p-2 rounded focus:ring-amber-500"
+                    <label htmlFor="editar-precioCompra" className="block text-sm font-medium mb-1 text-amber-700 font-bold">Precio Compra ($)</label>
+                    <input id="editar-precioCompra" type="number" step="0.01" required className="w-full border border-amber-300 p-2 rounded focus:ring-amber-500"
                       value={productoSeleccionado.precioCompra || ''}
-                      onChange={(e) => setProductoSeleccionado({...productoSeleccionado, precioCompra: parseFloat(e.target.value)})} />
+                      onChange={(e) => setProductoSeleccionado({...productoSeleccionado, precioCompra: e.target.value ? Number.parseFloat(e.target.value) : ''})} />
                   </div>
                   <div className="w-1/2">
-                    <label className="block text-sm font-medium mb-1 text-blue-700 font-bold">Precio Venta ($)</label>
-                    <input type="number" step="0.01" required className="w-full border border-blue-300 p-2 rounded focus:ring-blue-500"
+                    <label htmlFor="editar-precioVenta" className="block text-sm font-medium mb-1 text-blue-700 font-bold">Precio Venta ($)</label>
+                    <input id="editar-precioVenta" type="number" step="0.01" required className="w-full border border-blue-300 p-2 rounded focus:ring-blue-500"
                       value={productoSeleccionado.precioVenta || ''}
-                      onChange={(e) => setProductoSeleccionado({...productoSeleccionado, precioVenta: parseFloat(e.target.value)})} />
+                      onChange={(e) => setProductoSeleccionado({...productoSeleccionado, precioVenta: e.target.value ? Number.parseFloat(e.target.value) : ''})} />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-slate-700">Stock Actual</label>
-                  <input type="number" required className="w-full border border-slate-300 p-2 rounded bg-slate-50"
+                  <label htmlFor="editar-stock" className="block text-sm font-medium mb-1 text-slate-700">Stock Actual</label>
+                  <input id="editar-stock" type="number" required className="w-full border border-slate-300 p-2 rounded bg-slate-50"
                     value={productoSeleccionado.stock}
-                    onChange={(e) => setProductoSeleccionado({...productoSeleccionado, stock: parseInt(e.target.value)})} />
+                   onChange={(e) => setProductoSeleccionado({...productoSeleccionado, stock: e.target.value ? Number.parseInt(e.target.value, 10) : ''})} />
                 </div>
               </div>
               <div className="mt-6 flex justify-end gap-3">

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // 1. ¡NUEVO! Importamos el navegador
+import { useNavigate } from 'react-router-dom';
+import PropTypes from 'prop-types'; // 1. Solución para validación de props
 import { Mail, Lock, Eye, EyeOff, Box } from 'lucide-react';
 import { iniciarSesion } from '../services/auth.service';
 
 const Login = ({ onLoginSuccess }) => {
-  const navigate = useNavigate(); // 2. ¡NUEVO! Preparamos el "taxi"
+  const navigate = useNavigate(); 
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,10 +25,11 @@ const Login = ({ onLoginSuccess }) => {
         onLoginSuccess();
       }
       
-      // 3. ¡NUEVO! LA LÍNEA MÁGICA QUE FALTABA
-      navigate('/inventario'); // <-- Esto es lo que te redirige automáticamente
+      navigate('/inventario'); 
       
     } catch (err) {
+      // 2. Solución a S2486 y no-unused-vars: Manejamos el error adecuadamente
+      console.error("Error durante el inicio de sesión:", err);
       setError('Correo o contraseña incorrectos.');
     } finally {
       setLoading(false); 
@@ -60,7 +62,8 @@ const Login = ({ onLoginSuccess }) => {
         <form onSubmit={handleSubmit} className="space-y-5">
           
           <div>
-            <label className="block text-sm text-slate-700 mb-1">
+            {/* 3. Solución S6853: Etiqueta vinculada al input mediante htmlFor e id */}
+            <label htmlFor="email" className="block text-sm text-slate-700 mb-1">
               Correo Electrónico
             </label>
             <div className="relative">
@@ -68,7 +71,8 @@ const Login = ({ onLoginSuccess }) => {
                 <Mail className="h-4 w-4 text-slate-400" />
               </div>
               <input
-                type="text"
+                id="email"
+                type="email" // Mejor cambiarlo a "email" en lugar de "text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
@@ -79,7 +83,8 @@ const Login = ({ onLoginSuccess }) => {
           </div>
 
           <div>
-            <label className="block text-sm text-slate-700 mb-1">
+            {/* 4. Solución S6853: Etiqueta vinculada al input mediante htmlFor e id */}
+            <label htmlFor="password" className="block text-sm text-slate-700 mb-1">
               Contraseña
             </label>
             <div className="relative">
@@ -87,6 +92,7 @@ const Login = ({ onLoginSuccess }) => {
                 <Lock className="h-4 w-4 text-slate-400" />
               </div>
               <input
+                id="password"
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -99,6 +105,7 @@ const Login = ({ onLoginSuccess }) => {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="text-slate-400 hover:text-slate-600 focus:outline-none"
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -128,13 +135,23 @@ const Login = ({ onLoginSuccess }) => {
         </form>
 
         <div className="mt-6 text-center">
-          <a href="#" className="text-sm text-[#3b82f6] hover:text-blue-700 transition-colors">
+          {/* 5. Solución S6844: Cambiado etiqueta "a href=#" por un botón tipo link */}
+          <button 
+            type="button"
+            onClick={() => alert("Funcionalidad en desarrollo")}
+            className="text-sm text-[#3b82f6] hover:text-blue-700 transition-colors bg-transparent border-none p-0 cursor-pointer underline-offset-2"
+          >
             ¿Olvidaste tu contraseña?
-          </a>
+          </button>
         </div>
       </div>
     </div>
   );
 }
+
+// Validación explícita de las propiedades
+Login.propTypes = {
+  onLoginSuccess: PropTypes.func
+};
 
 export default Login;

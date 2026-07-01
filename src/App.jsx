@@ -1,20 +1,20 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import SalesHistory from './pages/SalesHistory';
-// Importación de tus componentes y páginas
 import Login from './components/Login';
 import Layout from './components/Layout';
 import Inventory from './pages/Inventory';
 import Dashboard from './pages/Dashboard';
 import NewSale from './pages/NewSale';
+import Proveedores from './pages/Proveedores';
+import Clientes from './pages/Clientes';
+import Reportes from './pages/Reportes';
+import Configuracion from './pages/Configuracion';
 
 function App() {
   const [estaLogueado, setEstaLogueado] = useState(!!localStorage.getItem('token'));
 
-  const manejarIngresoExitoso = () => {
-    setEstaLogueado(true);
-  };
-
+  const manejarIngresoExitoso = () => setEstaLogueado(true);
   const manejarCierreSesion = () => {
     localStorage.removeItem('token');
     setEstaLogueado(false);
@@ -23,30 +23,24 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* RUTA PÚBLICA: Si ya está logueado, lo mandamos al inventario. Si no, le mostramos el Login y le pasamos la función */}
-        <Route 
-          path="/login" 
-          element={!estaLogueado ? <Login onLoginSuccess={manejarIngresoExitoso} /> : <Navigate to="/inventario" />} 
-        />
+        <Route path="/login" element={estaLogueado ? <Navigate to="/inventario" /> : <Login onLoginSuccess={manejarIngresoExitoso} />} />
         
-        {/* LA RUTA MADRE (Protegida): Si está logueado, dibuja el Layout y le pasa la función de salir. Si no, lo patea al login */}
-        <Route 
-          path="/" 
-          element={estaLogueado ? <Layout onLogout={manejarCierreSesion} /> : <Navigate to="/login" />}
-        >
-          
-          {/* LAS RUTAS HIJAS */}
-          <Route index element={<Navigate to="/inventario" />} /> {/* <- Redirige por defecto al inventario */}
+        <Route path="/" element={estaLogueado ? <Layout onLogout={manejarCierreSesion} /> : <Navigate to="/login" />}>
+          <Route index element={<Navigate to="/inventario" />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="inventario" element={<Inventory />} />
-          
-          {/* Sub-rutas de ventas */}
           <Route path="ventas/nueva" element={<NewSale />} />
           <Route path="ventas/historial" element={<SalesHistory />} />
           
+          {/* ¡AHORA SÍ! TODAS ESTÁN ADENTRO DEL LAYOUT */}
+          <Route path="clientes" element={<Clientes />} />
+          <Route path="proveedores" element={<Proveedores />} />
+          <Route path="reportes" element={<Reportes />} />
+          <Route path="configuracion" element={<Configuracion />} />
         </Route>
       </Routes>
     </BrowserRouter>
   );
 }
+
 export default App;

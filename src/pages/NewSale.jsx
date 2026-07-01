@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Trash2, ShoppingCart, ToggleLeft, ToggleRight, User, FileText, Banknote, Smartphone, CreditCard } from 'lucide-react';
+// Solución S1128: Se quitó User que no se usaba
+import { Search, Trash2, ShoppingCart, ToggleLeft, ToggleRight, FileText, Banknote, Smartphone, CreditCard } from 'lucide-react';
 import { obtenerProductos } from '../services/inventory.service.js';
 import { registrarVenta } from '../services/sales.service.js';
 
@@ -11,16 +12,13 @@ const NewSale = () => {
   const [documentoCliente, setDocumentoCliente] = useState('');
   const [tipoComprobante, setTipoComprobante] = useState('BOLETA');
   
-  // ESTADOS DE PAGO
   const [pagoEfectivo, setPagoEfectivo] = useState('');
   const [pagoYape, setPagoYape] = useState('');
   const [pagoPlin, setPagoPlin] = useState('');
   const [pagoTarjeta, setPagoTarjeta] = useState('');
-
-  // 🚨 NUEVO ESTADO: SEGURO ANTI-DOBLE-CLIC 🚨
   const [procesando, setProcesando] = useState(false);
-
   const [ticketImprimir, setTicketImprimir] = useState(null);
+  
   const lectorRef = useRef(null);
 
   useEffect(() => {
@@ -62,17 +60,16 @@ const NewSale = () => {
   const eliminarDelCarrito = (id) => setCarrito(carrito.filter(item => item.idProducto !== id));
   const total = carrito.reduce((sum, item) => sum + item.subtotal, 0);
 
-  const numEfectivo = parseFloat(pagoEfectivo) || 0;
-  const numYape = parseFloat(pagoYape) || 0;
-  const numPlin = parseFloat(pagoPlin) || 0;
-  const numTarjeta = parseFloat(pagoTarjeta) || 0;
+  // Solución S7773: Uso de Number.parseFloat
+  const numEfectivo = Number.parseFloat(pagoEfectivo) || 0;
+  const numYape = Number.parseFloat(pagoYape) || 0;
+  const numPlin = Number.parseFloat(pagoPlin) || 0;
+  const numTarjeta = Number.parseFloat(pagoTarjeta) || 0;
   const totalIngresado = numEfectivo + numYape + numPlin + numTarjeta;
   const saldoRestante = total - totalIngresado;
 
   const handleProcesarVenta = async () => {
     if (carrito.length === 0) return alert("El carrito está vacío");
-    
-    // 🚨 SI YA ESTÁ PROCESANDO, IGNORAMOS LOS CLICS EXTRA 🚨
     if (procesando) return;
 
     let finalEfectivo = numEfectivo;
@@ -99,9 +96,7 @@ const NewSale = () => {
     };
 
     try {
-      // 🚨 BLOQUEAMOS EL BOTÓN JUSTO ANTES DE HABLAR CON JAVA 🚨
       setProcesando(true);
-      
       await registrarVenta(datosVenta);
       
       setTicketImprimir({
@@ -127,15 +122,30 @@ const NewSale = () => {
       setPagoTarjeta('');
       
       setTimeout(() => {
-        window.print();
+        // Solución S7764: Usar globalThis.print
+        globalThis.print();
       }, 500);
 
     } catch (error) {
+      // Solución S2486 y no-unused-vars: Manejo del error
+      console.error("Error al procesar la venta:", error);
       alert("No se pudo registrar la venta.");
     } finally {
-      // 🚨 DESBLOQUEAMOS EL BOTÓN AL TERMINAR (HAYA HABIDO ÉXITO O ERROR) 🚨
       setProcesando(false);
     }
+  };
+
+  // Solución S3358: Extracción de ternarios anidados a funciones
+  const renderMensajeSaldo = () => {
+    if (saldoRestante > 0) return <span>Falta cubrir: S/ {saldoRestante.toFixed(2)}</span>;
+    if (saldoRestante < 0) return <span>Vuelto a entregar: S/ {Math.abs(saldoRestante).toFixed(2)}</span>;
+    return <span>¡Monto exacto cubierto! S/ {totalIngresado.toFixed(2)}</span>;
+  };
+
+  const getTextoBotonVenta = () => {
+    if (procesando) return 'Procesando Venta...';
+    if (sunatActivo) return 'Emitir Comprobante';
+    return 'Imprimir Ticket';
   };
 
   return (
@@ -172,8 +182,9 @@ const NewSale = () => {
                 </tr>
               </thead>
               <tbody>
-                {ticketImprimir.items.map((item, idx) => (
-                  <tr key={idx}>
+                {/* Solución S6479: Uso de item.idProducto como key en lugar del index del map */}
+                {ticketImprimir.items.map((item) => (
+                  <tr key={item.idProducto}>
                     <td className="align-top py-1">{item.cantidad}</td>
                     <td className="align-top py-1 pr-1">{item.nombre}</td>
                     <td className="align-top py-1 text-right">S/{item.subtotal.toFixed(2)}</td>
@@ -209,7 +220,6 @@ const NewSale = () => {
         </header>
 
         <div className="flex-1 flex p-6 gap-6 h-[calc(100vh-80px)] overflow-hidden">
-          {/* LADO IZQUIERDO */}
           <div className="flex-1 flex flex-col bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden p-6">
             <form onSubmit={handleBusquedaProducto} className="mb-6 flex gap-3">
               <div className="relative flex-1">
@@ -245,7 +255,7 @@ const NewSale = () => {
                       <td className="px-4 py-3 text-center text-slate-800 font-semibold">{item.cantidad}</td>
                       <td className="px-4 py-3 text-right font-bold text-slate-700">S/{item.subtotal.toFixed(2)}</td>
                       <td className="px-4 py-3 text-center">
-                        <button onClick={() => eliminarDelCarrito(item.idProducto)} className="text-red-500 hover:text-red-700"><Trash2 size={18} /></button>
+                        <button type="button" onClick={() => eliminarDelCarrito(item.idProducto)} className="text-red-500 hover:text-red-700 bg-transparent border-none cursor-pointer"><Trash2 size={18} /></button>
                       </td>
                     </tr>
                   )) : (
@@ -256,7 +266,6 @@ const NewSale = () => {
             </div>
           </div>
 
-          {/* LADO DERECHO */}
           <div className="w-[420px] flex flex-col gap-4 overflow-y-auto pr-1">
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
               <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
@@ -265,7 +274,7 @@ const NewSale = () => {
               
               <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200 mb-3">
                 <span className="text-xs font-semibold text-slate-700">Enviar a SUNAT</span>
-                <button type="button" onClick={() => setSunatActivo(!sunatActivo)} className="focus:outline-none transition-colors">
+                <button type="button" onClick={() => setSunatActivo(!sunatActivo)} className="focus:outline-none transition-colors border-none bg-transparent cursor-pointer">
                   {sunatActivo ? <ToggleRight size={38} className="text-green-500" /> : <ToggleLeft size={38} className="text-slate-400" />}
                 </button>
               </div>
@@ -277,7 +286,8 @@ const NewSale = () => {
                     <button type="button" onClick={() => setTipoComprobante('FACTURA')} className={`flex-1 py-2 text-xs font-bold rounded border ${tipoComprobante === 'FACTURA' ? 'bg-blue-50 border-blue-500 text-blue-600' : 'bg-white border-slate-200 text-slate-600'}`}>FACTURA</button>
                   </div>
                   <div>
-                    <input type="text" placeholder={tipoComprobante === 'BOLETA' ? "DNI del Cliente (8 dígitos)" : "RUC de la Empresa (11 dígitos)"} value={documentoCliente} onChange={(e) => setDocumentoCliente(e.target.value)} className="px-3 py-2 border border-slate-300 rounded-md text-xs w-full outline-none focus:ring-2 focus:ring-blue-500" />
+                    <label htmlFor="doc-cliente" className="sr-only">Documento del Cliente</label>
+                    <input id="doc-cliente" type="text" placeholder={tipoComprobante === 'BOLETA' ? "DNI del Cliente (8 dígitos)" : "RUC de la Empresa (11 dígitos)"} value={documentoCliente} onChange={(e) => setDocumentoCliente(e.target.value)} className="px-3 py-2 border border-slate-300 rounded-md text-xs w-full outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
                 </div>
               )}
@@ -288,43 +298,37 @@ const NewSale = () => {
               
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 relative">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 mb-1">
+                  <label htmlFor="pago-efectivo" className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 mb-1">
                     <Banknote size={12} className="text-green-600" /> Efectivo (S/)
                   </label>
-                  <input type="number" min="0" placeholder="0.00" value={pagoEfectivo} onChange={(e) => setPagoEfectivo(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-sm font-semibold outline-none text-slate-800" />
+                  <input id="pago-efectivo" type="number" min="0" placeholder="0.00" value={pagoEfectivo} onChange={(e) => setPagoEfectivo(e.target.value)} className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-sm font-semibold outline-none text-slate-800" />
                 </div>
 
                 <div className="bg-purple-50 p-2 rounded-lg border border-purple-200 relative">
-                  <label className="text-[10px] font-bold text-purple-600 uppercase flex items-center gap-1 mb-1">
+                  <label htmlFor="pago-yape" className="text-[10px] font-bold text-purple-600 uppercase flex items-center gap-1 mb-1">
                     <Smartphone size={12} className="text-purple-600" /> Yape (S/)
                   </label>
-                  <input type="number" min="0" placeholder="0.00" value={pagoYape} onChange={(e) => setPagoYape(e.target.value)} className="w-full bg-white border border-purple-300 rounded px-2 py-1 text-sm font-semibold outline-none text-purple-800" />
+                  <input id="pago-yape" type="number" min="0" placeholder="0.00" value={pagoYape} onChange={(e) => setPagoYape(e.target.value)} className="w-full bg-white border border-purple-300 rounded px-2 py-1 text-sm font-semibold outline-none text-purple-800" />
                 </div>
 
                 <div className="bg-cyan-50 p-2 rounded-lg border border-cyan-200 relative">
-                  <label className="text-[10px] font-bold text-cyan-600 uppercase flex items-center gap-1 mb-1">
+                  <label htmlFor="pago-plin" className="text-[10px] font-bold text-cyan-600 uppercase flex items-center gap-1 mb-1">
                     <Smartphone size={12} className="text-cyan-600" /> Plin (S/)
                   </label>
-                  <input type="number" min="0" placeholder="0.00" value={pagoPlin} onChange={(e) => setPagoPlin(e.target.value)} className="w-full bg-white border border-cyan-300 rounded px-2 py-1 text-sm font-semibold outline-none text-cyan-800" />
+                  <input id="pago-plin" type="number" min="0" placeholder="0.00" value={pagoPlin} onChange={(e) => setPagoPlin(e.target.value)} className="w-full bg-white border border-cyan-300 rounded px-2 py-1 text-sm font-semibold outline-none text-cyan-800" />
                 </div>
 
                 <div className="bg-blue-50 p-2 rounded-lg border border-blue-200 relative">
-                  <label className="text-[10px] font-bold text-blue-600 uppercase flex items-center gap-1 mb-1">
+                  <label htmlFor="pago-tarjeta" className="text-[10px] font-bold text-blue-600 uppercase flex items-center gap-1 mb-1">
                     <CreditCard size={12} className="text-blue-600" /> Tarjeta (S/)
                   </label>
-                  <input type="number" min="0" placeholder="0.00" value={pagoTarjeta} onChange={(e) => setPagoTarjeta(e.target.value)} className="w-full bg-white border border-blue-300 rounded px-2 py-1 text-sm font-semibold outline-none text-slate-800" />
+                  <input id="pago-tarjeta" type="number" min="0" placeholder="0.00" value={pagoTarjeta} onChange={(e) => setPagoTarjeta(e.target.value)} className="w-full bg-white border border-blue-300 rounded px-2 py-1 text-sm font-semibold outline-none text-slate-800" />
                 </div>
               </div>
 
               {total > 0 && (
                 <div className={`mt-4 p-2.5 rounded-lg text-center text-xs font-bold border ${saldoRestante > 0 ? 'bg-amber-50 border-amber-300 text-amber-700' : 'bg-emerald-50 border-emerald-300 text-emerald-700'}`}>
-                  {saldoRestante > 0 ? (
-                    <span>Falta cubrir: S/ {saldoRestante.toFixed(2)}</span>
-                  ) : saldoRestante < 0 ? (
-                    <span>Vuelto a entregar: S/ {Math.abs(saldoRestante).toFixed(2)}</span>
-                  ) : (
-                    <span>¡Monto exacto cubierto! S/ {totalIngresado.toFixed(2)}</span>
-                  )}
+                  {renderMensajeSaldo()}
                 </div>
               )}
             </div>
@@ -343,13 +347,13 @@ const NewSale = () => {
                   <span className="text-sm font-bold text-slate-400">TOTAL:</span>
                   <span className="text-3xl font-extrabold text-blue-400">S/ {total.toFixed(2)}</span>
                 </div>
-                {/* 🚨 BOTÓN ACTUALIZADO QUE SE PONE GRIS MIENTRAS CARGA 🚨 */}
                 <button 
+                  type="button"
                   onClick={handleProcesarVenta} 
                   disabled={procesando}
-                  className={`w-full text-white text-center py-3.5 rounded-xl font-bold text-base transition-all shadow-md ${procesando ? 'bg-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'}`}
+                  className={`w-full text-white text-center py-3.5 rounded-xl font-bold text-base transition-all shadow-md border-none cursor-pointer ${procesando ? 'bg-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'}`}
                 >
-                  {procesando ? 'Procesando Venta...' : (sunatActivo ? 'Emitir Comprobante' : 'Imprimir Ticket')}
+                  {getTextoBotonVenta()}
                 </button>
               </div>
             </div>
