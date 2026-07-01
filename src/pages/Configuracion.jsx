@@ -3,6 +3,10 @@ import { Settings, Shield, Plus, Edit, Trash2 } from 'lucide-react';
 import { obtenerUsuarios, crearUsuario, actualizarUsuario, eliminarUsuario } from '../services/usuario.service';
 import UsuarioModal from '../components/UsuarioModal';
 
+// 1. Importamos nuestras librerías de notificaciones modernas
+import toast from 'react-hot-toast';
+import Swal from 'sweetalert2';
+
 const Configuracion = () => {
   const [usuarios, setUsuarios] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,25 +28,46 @@ const Configuracion = () => {
     inicializar();
   }, []);
 
+ // 2. MODIFICADO: Usamos toast.success y toast.error en lugar de alert()
  const handleGuardar = async (datos) => {
     try {
       if (usuarioSeleccionado) {
         await actualizarUsuario(usuarioSeleccionado.idUsuario, datos);
+        toast.success('¡Usuario actualizado con éxito!');
       } else {
         await crearUsuario(datos);
+        toast.success('¡Nuevo usuario creado con éxito!');
       }
       setIsModalOpen(false);
       cargarDatos();
     } catch (error) { 
       console.error("Error al guardar el usuario:", error);
-      alert('Error al guardar el usuario. Verifica la consola.'); 
+      toast.error('Error al guardar el usuario. Verifica los datos.'); 
     }
   };
 
+  // 3. MODIFICADO: Usamos SweetAlert2 en lugar del feo globalThis.confirm()
   const handleEliminar = async (id) => {
-    if (globalThis.confirm('¿Eliminar acceso a este usuario?')) {
-      await eliminarUsuario(id);
-      cargarDatos();
+    const confirmacion = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: "El usuario perderá el acceso al sistema inmediatamente",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626', // Rojo de Tailwind (peligro)
+      cancelButtonColor: '#94a3b8',  // Gris de Tailwind (cancelar)
+      confirmButtonText: 'Sí, eliminar acceso',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (confirmacion.isConfirmed) {
+      try {
+        await eliminarUsuario(id);
+        cargarDatos();
+        toast.success('¡Usuario eliminado correctamente!');
+      } catch (error) {
+        toast.error('No se pudo eliminar el usuario.');
+        console.error("Error al eliminar usuario:", error);
+      }
     }
   };
 

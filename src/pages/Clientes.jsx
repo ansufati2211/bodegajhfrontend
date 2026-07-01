@@ -6,6 +6,10 @@ import 'jspdf-autotable';
 import { obtenerClientes, crearCliente, actualizarCliente, eliminarCliente } from '../services/cliente.service';
 import ClienteModal from '../components/ClienteModal';
 
+// 1. Importamos nuestras librerías modernas
+import toast from 'react-hot-toast';
+import Swal from 'sweetalert2'; 
+
 const Clientes = () => {
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +33,6 @@ const Clientes = () => {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchClientes();
   }, []);
 
@@ -74,31 +77,44 @@ const Clientes = () => {
     setIsModalOpen(true);
   };
 
+  // 2. MODIFICADO: Usamos toast() en lugar de alert()
   const handleSaveCliente = async (datosCliente) => {
     try {
       if (clienteSeleccionado) {
         await actualizarCliente(clienteSeleccionado.idCliente, datosCliente);
-        alert("¡Cliente actualizado con éxito!");
+        toast.success("¡Cliente actualizado con éxito!");
       } else {
         await crearCliente(datosCliente);
-        alert("¡Cliente añadido con éxito!");
+        toast.success("¡Cliente añadido con éxito!");
       }
       setIsModalOpen(false);
       fetchClientes();
     } catch (err) {
-      alert("Hubo un error al guardar los datos del cliente.");
+      toast.error("Hubo un error al guardar los datos del cliente.");
       console.error(err);
     }
   };
 
+  // 3. MODIFICADO: Usamos SweetAlert2 en lugar de confirm() y toast() para el resultado
   const handleDelete = async (id) => {
-    if (globalThis.confirm("¿Estás seguro de que deseas eliminar este cliente?")) {
+    const confirmacion = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: "Se eliminará este cliente del directorio",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626', // Rojo de tailwind
+      cancelButtonColor: '#94a3b8',  // Gris de tailwind
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (confirmacion.isConfirmed) {
       try {
         await eliminarCliente(id);
         fetchClientes();
-        alert("¡Cliente eliminado con éxito!");
+        toast.success("¡Cliente eliminado con éxito!");
       } catch (err) {
-        alert("No se pudo eliminar el cliente por seguridad de la base de datos.");
+        toast.error("No se pudo eliminar el cliente por seguridad de la base de datos.");
         console.error(err);
       }
     }
@@ -115,6 +131,7 @@ const Clientes = () => {
 
   return (
     <div className="flex-1 flex flex-col bg-slate-50 min-h-screen">
+      {/* ... TU CÓDIGO DE INTERFAZ QUEDA EXACTAMENTE IGUAL AQUÍ ... */}
       <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10">
         <h1 className="text-lg font-bold text-slate-800 uppercase tracking-wide">
           SISTEMA DE VENTAS E INVENTARIO - ADMIN
@@ -183,8 +200,6 @@ const Clientes = () => {
                   <td className="px-6 py-4 font-bold text-slate-700">{c.dni}</td>
                   <td className="px-6 py-4 font-medium text-slate-600">{`${c.nombres} ${c.apellidos}`}</td>
                   <td className="px-6 py-4 text-slate-600">{c.telefono || '-'}</td>
-                  
-                  {/* Columna especial para ver deudas rápidamente */}
                   <td className="px-6 py-4 text-center">
                     <span className={`flex items-center justify-center gap-1 font-bold ${
                       (c.deudaTotal > 0) ? 'text-red-600' : 'text-slate-400'
@@ -193,7 +208,6 @@ const Clientes = () => {
                       S/ {c.deudaTotal ? c.deudaTotal.toFixed(2) : '0.00'}
                     </span>
                   </td>
-                  
                   <td className="px-6 py-4 text-center">
                     <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${
                       c.estado ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'

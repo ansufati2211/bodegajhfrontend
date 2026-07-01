@@ -3,6 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Filter, FileText, RefreshCw, DollarSign, Smartphone, CreditCard } from 'lucide-react';
 import { obtenerHistorialVentas } from '../services/sales.service.js';
 
+// 1. IMPORTAMOS NUESTRA LIBRERÍA DE NOTIFICACIONES
+import toast from 'react-hot-toast';
+
 const SalesHistory = () => {
   const [ventas, setVentas] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -19,7 +22,8 @@ const SalesHistory = () => {
       setVentas(ordenadas);
     } catch (error) {
       console.error("Error al recuperar el historial:", error);
-      alert("No se pudo conectar con el servidor para traer las ventas.");
+      // 2. MODIFICADO: Usamos toast en lugar de alert()
+      toast.error("No se pudo conectar con el servidor para traer las ventas.");
     } finally {
       setCargando(false);
     }

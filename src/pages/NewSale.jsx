@@ -4,6 +4,9 @@ import { Search, Trash2, ShoppingCart, ToggleLeft, ToggleRight, FileText, Bankno
 import { obtenerProductos } from '../services/inventory.service.js';
 import { registrarVenta } from '../services/sales.service.js';
 
+// 1. IMPORTAMOS NUESTRA LIBRERÍA DE NOTIFICACIONES
+import toast from 'react-hot-toast';
+
 const NewSale = () => {
   const [productosBase, setProductosBase] = useState([]);
   const [carrito, setCarrito] = useState([]);
@@ -39,8 +42,12 @@ const NewSale = () => {
                              productosBase.find(p => p.nombre.toLowerCase() === valorTermino && p.estado === true) ||
                              productosBase.find(p => p.nombre.toLowerCase().includes(valorTermino) && p.estado === true);
 
-    if (productoEncontrado) agregarAlCarrito(productoEncontrado);
-    else alert("Producto no encontrado o sin stock.");
+    if (productoEncontrado) {
+      agregarAlCarrito(productoEncontrado);
+    } else {
+      // 2. MODIFICADO: Toast en lugar de alert
+      toast.error("Producto no encontrado o sin stock");
+    }
 
     setBusqueda('');
     lectorRef.current.focus();
@@ -50,7 +57,11 @@ const NewSale = () => {
     setCarrito((carritoActual) => {
       const existe = carritoActual.find(item => item.idProducto === producto.idProducto);
       if (existe) {
-        if (existe.cantidad >= producto.stock) { alert(`Stock máximo alcanzado`); return carritoActual; }
+        if (existe.cantidad >= producto.stock) { 
+          // 3. MODIFICADO: Toast de advertencia
+          toast.error("Stock máximo alcanzado"); 
+          return carritoActual; 
+        }
         return carritoActual.map(item => item.idProducto === producto.idProducto ? { ...item, cantidad: item.cantidad + 1, subtotal: (item.cantidad + 1) * item.precioVenta } : item);
       }
       return [...carritoActual, { idProducto: producto.idProducto, nombre: producto.nombre, precioVenta: producto.precioVenta, cantidad: 1, subtotal: producto.precioVenta, stockMax: producto.stock }];
@@ -60,7 +71,6 @@ const NewSale = () => {
   const eliminarDelCarrito = (id) => setCarrito(carrito.filter(item => item.idProducto !== id));
   const total = carrito.reduce((sum, item) => sum + item.subtotal, 0);
 
-  // Solución S7773: Uso de Number.parseFloat
   const numEfectivo = Number.parseFloat(pagoEfectivo) || 0;
   const numYape = Number.parseFloat(pagoYape) || 0;
   const numPlin = Number.parseFloat(pagoPlin) || 0;
@@ -69,7 +79,11 @@ const NewSale = () => {
   const saldoRestante = total - totalIngresado;
 
   const handleProcesarVenta = async () => {
-    if (carrito.length === 0) return alert("El carrito está vacío");
+    // 4. MODIFICADO: Validaciones con Toast
+    if (carrito.length === 0) {
+      toast.error("El carrito está vacío");
+      return;
+    }
     if (procesando) return;
 
     let finalEfectivo = numEfectivo;
@@ -80,7 +94,8 @@ const NewSale = () => {
     if (totalIngresado === 0) {
       finalEfectivo = total;
     } else if (Math.abs(saldoRestante) > 0.01 && saldoRestante > 0) {
-      return alert(`Monto incompleto. Falta cubrir S/ ${saldoRestante.toFixed(2)} del total.`);
+      toast.error(`Monto incompleto. Falta cubrir S/ ${saldoRestante.toFixed(2)} del total.`);
+      return;
     }
 
     const datosVenta = {
@@ -99,6 +114,9 @@ const NewSale = () => {
       setProcesando(true);
       await registrarVenta(datosVenta);
       
+      // 5. MODIFICADO: Éxito
+      toast.success("¡Venta registrada con éxito!");
+
       setTicketImprimir({
         tipo: sunatActivo ? tipoComprobante : 'TICKET DE VENTA',
         cliente: documentoCliente || 'Público General',
@@ -122,20 +140,18 @@ const NewSale = () => {
       setPagoTarjeta('');
       
       setTimeout(() => {
-        // Solución S7764: Usar globalThis.print
         globalThis.print();
       }, 500);
 
     } catch (error) {
-      // Solución S2486 y no-unused-vars: Manejo del error
       console.error("Error al procesar la venta:", error);
-      alert("No se pudo registrar la venta.");
+      // 6. MODIFICADO: Error
+      toast.error("No se pudo registrar la venta. Verifica la conexión.");
     } finally {
       setProcesando(false);
     }
   };
 
-  // Solución S3358: Extracción de ternarios anidados a funciones
   const renderMensajeSaldo = () => {
     if (saldoRestante > 0) return <span>Falta cubrir: S/ {saldoRestante.toFixed(2)}</span>;
     if (saldoRestante < 0) return <span>Vuelto a entregar: S/ {Math.abs(saldoRestante).toFixed(2)}</span>;
@@ -182,7 +198,6 @@ const NewSale = () => {
                 </tr>
               </thead>
               <tbody>
-                {/* Solución S6479: Uso de item.idProducto como key en lugar del index del map */}
                 {ticketImprimir.items.map((item) => (
                   <tr key={item.idProducto}>
                     <td className="align-top py-1">{item.cantidad}</td>

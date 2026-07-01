@@ -6,6 +6,10 @@ import 'jspdf-autotable';
 import { obtenerProveedores, crearProveedor, actualizarProveedor, eliminarProveedor } from '../services/proveedor.service';
 import ProveedorModal from '../components/ProveedorModal';
 
+// 1. IMPORTAMOS NUESTRAS LIBRERÍAS MODERNAS
+import toast from 'react-hot-toast';
+import Swal from 'sweetalert2';
+
 const Proveedores = () => {
   const [proveedores, setProveedores] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,11 +33,9 @@ const Proveedores = () => {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProveedores();
   }, []);
 
-  // Solución S6582: Uso de optional chaining (?.)
   const proveedoresFiltrados = proveedores.filter(p => 
     (p.empresa?.toLowerCase().includes(busqueda.toLowerCase())) || 
     (p.nombreVendedor?.toLowerCase().includes(busqueda.toLowerCase()))
@@ -74,32 +76,44 @@ const Proveedores = () => {
     setIsModalOpen(true);
   };
 
+  // 2. MODIFICADO: Usamos toast para guardar y actualizar
   const handleSaveProveedor = async (datosProveedor) => {
     try {
       if (proveedorSeleccionado) {
         await actualizarProveedor(proveedorSeleccionado.idProveedor, datosProveedor);
-        alert("¡Proveedor actualizado con éxito!");
+        toast.success("¡Proveedor actualizado con éxito!");
       } else {
         await crearProveedor(datosProveedor);
-        alert("¡Proveedor añadido con éxito!");
+        toast.success("¡Proveedor añadido con éxito!");
       }
       setIsModalOpen(false);
       fetchProveedores();
     } catch (err) {
-      alert("Hubo un error al guardar los datos del proveedor.");
+      toast.error("Hubo un error al guardar los datos del proveedor.");
       console.error(err);
     }
   };
 
+  // 3. MODIFICADO: Usamos SweetAlert2 para la confirmación de eliminación
   const handleDelete = async (id) => {
-    // Solución S7764: Uso de globalThis
-    if (globalThis.confirm("¿Estás seguro de que deseas eliminar este proveedor?")) {
+    const confirmacion = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: "Se eliminará este proveedor del directorio",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (confirmacion.isConfirmed) {
       try {
         await eliminarProveedor(id);
         fetchProveedores();
-        alert("¡Proveedor eliminado con éxito!");
+        toast.success("¡Proveedor eliminado con éxito!");
       } catch (err) {
-        alert("No se pudo eliminar el proveedor por seguridad de la base de datos.");
+        toast.error("No se pudo eliminar el proveedor por seguridad de la base de datos.");
         console.error(err);
       }
     }

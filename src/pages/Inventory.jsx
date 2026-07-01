@@ -4,7 +4,10 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { obtenerProductos, crearProducto, actualizarProducto, eliminarProducto } from '../services/inventory.service';
-// Se eliminó useNavigate porque no se utiliza en este componente
+
+// 1. IMPORTAMOS LAS LIBRERÍAS MODERNAS
+import toast from 'react-hot-toast';
+import Swal from 'sweetalert2';
 
 const Inventory = () => {
   // --- 1. ESTADOS DE LA APLICACIÓN ---
@@ -40,12 +43,10 @@ const Inventory = () => {
   };
 
 useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchInventory(); 
   }, []);
 
   // --- 3. LÓGICA DEL BUSCADOR ---
-  // Solución S6582: Uso de optional chaining (?.)
   const productosFiltrados = products.filter(producto => 
     (producto.nombre?.toLowerCase().includes(busqueda.toLowerCase())) || 
     (producto.codigoBarras?.includes(busqueda))
@@ -80,7 +81,7 @@ useEffect(() => {
 
   // --- 5. LÓGICA DE ACCIONES ---
   
-  // Crear
+  // Crear (MODIFICADO)
   const handleGuardarProducto = async (e) => {
     e.preventDefault(); 
     try {
@@ -90,26 +91,24 @@ useEffect(() => {
         codigoBarras: '', nombre: '', precioCompra: 0, precioVenta: 0, stock: 0, idCategoria: 1, idProveedor: 1, estado: true
       });
       await fetchInventory(); 
-      alert("¡Producto añadido con éxito!");
+      toast.success("¡Producto añadido con éxito!"); // Cambio aquí
     } catch (err) {
-      alert("Hubo un error al guardar el producto.");
+      toast.error("Hubo un error al guardar el producto."); // Cambio aquí
       console.error(err);
     }
   };
 
-  // Abrir Modal Ver
   const abrirModalVer = (producto) => {
     setProductoSeleccionado(producto);
     setMostrarModalVer(true);
   };
 
-  // Abrir Modal Editar
   const abrirModalEditar = (producto) => {
     setProductoSeleccionado({ ...producto }); 
     setMostrarModalEditar(true);
   };
 
-  // Actualizar (Editar)
+  // Actualizar (MODIFICADO)
   const handleActualizarProducto = async (e) => {
     e.preventDefault();
     try {
@@ -117,23 +116,33 @@ useEffect(() => {
       await actualizarProducto(id, productoSeleccionado);
       setMostrarModalEditar(false);
       await fetchInventory(); 
-      alert("¡Producto actualizado con éxito!");
+      toast.success("¡Producto actualizado con éxito!"); // Cambio aquí
     } catch (err) {
-      alert("Hubo un error al actualizar el producto.");
+      toast.error("Hubo un error al actualizar el producto."); // Cambio aquí
       console.error(err);
     }
   };
 
-  // Eliminar (Borrado Lógico)
+  // Eliminar (MODIFICADO CON SWEETALERT2)
   const handleEliminarProducto = async (id) => {
-    // Solución S7764: Uso de globalThis en lugar de window
-    if (globalThis.confirm("¿Estás seguro de que deseas eliminar este producto? Esta acción no se puede deshacer.")) {
+    const confirmacion = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: "Esta acción no se puede deshacer y el producto será eliminado del inventario.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (confirmacion.isConfirmed) {
       try {
         await eliminarProducto(id);
         await fetchInventory(); 
-        alert("¡Producto eliminado con éxito!");
+        toast.success("¡Producto eliminado con éxito!");
       } catch (err) {
-        alert("No se pudo eliminar el producto por seguridad de la base de datos.");
+        toast.error("No se pudo eliminar el producto por seguridad de la base de datos.");
         console.error(err);
       }
     }
@@ -153,6 +162,7 @@ useEffect(() => {
   return (
     <div className="flex-1 flex flex-col bg-slate-50 min-h-screen">
       
+      {/* ... (El resto de tu código HTML/JSX queda exactamente igual) ... */}
       <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10">
         <h1 className="text-lg font-bold text-slate-800 uppercase tracking-wide">
           SISTEMA DE VENTAS E INVENTARIO - ADMIN
