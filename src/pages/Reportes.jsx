@@ -51,8 +51,8 @@ const Reportes = () => {
   }, []);
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-slate-50 p-8 overflow-y-auto">
-      <div className="mb-8 border-b pb-4">
+      <div className="flex-1 flex flex-col bg-slate-50 min-h-screen">
+      <div className="p-8 flex-1">
         <h2 className="text-3xl font-extrabold text-slate-800 flex items-center gap-3"><BarChart3 className="text-blue-600"/> Inteligencia de Negocios (BI)</h2>
         <p className="text-slate-500 text-sm mt-1">Análisis financiero y estadísticas de rendimiento general.</p>
       </div>
