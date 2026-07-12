@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Edit } from 'lucide-react';
 
@@ -11,14 +11,16 @@ const estadoInicial = {
 };
 
 const ProveedorModal = ({ isOpen, onClose, onSave, proveedorAEditar }) => {
-  const [prevProveedor, setPrevProveedor] = useState(proveedorAEditar);
-  const [formData, setFormData] = useState(proveedorAEditar || estadoInicial);
+  const [formData, setFormData] = useState(estadoInicial);
 
-  // Sincronización del estado para cuando se abre el modal en modo edición
-  if (proveedorAEditar !== prevProveedor) {
-    setPrevProveedor(proveedorAEditar);
-    setFormData(proveedorAEditar || estadoInicial);
-  }
+  // 1. FORMA CORRECTA Y SEGURA DE SINCRONIZAR DATOS EN REACT
+  useEffect(() => {
+    if (proveedorAEditar) {
+      setFormData(proveedorAEditar); // Si es edición, llenamos los datos
+    } else {
+      setFormData(estadoInicial);    // Si es nuevo, limpiamos el formulario
+    }
+  }, [proveedorAEditar, isOpen]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -97,6 +99,20 @@ const ProveedorModal = ({ isOpen, onClose, onSave, proveedorAEditar }) => {
                   placeholder="Ej. Lunes y Jueves"
                 />
               </div>
+            </div>
+
+            {/* 2. AGREGADO: Campo de Estado Activo/Inactivo */}
+            <div className="flex items-center gap-2 pt-2">
+              <input 
+                type="checkbox" 
+                id="estadoProveedor"
+                checked={formData.estado} 
+                onChange={(e) => setFormData({...formData, estado: e.target.checked})} 
+                className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+              />
+              <label htmlFor="estadoProveedor" className="text-sm font-medium text-slate-700 cursor-pointer">
+                Proveedor Activo (Mostrar en el sistema)
+              </label>
             </div>
           </div>
           

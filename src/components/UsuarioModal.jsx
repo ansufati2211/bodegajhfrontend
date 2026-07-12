@@ -6,24 +6,39 @@ import { obtenerRoles } from '../services/usuario.service';
 const estadoInicial = { nombreCompleto: '', username: '', contrasena: '', idRol: 2, estado: true };
 
 const UsuarioModal = ({ isOpen, onClose, onSave, usuarioAEditar }) => {
-  const [prevUsuario, setPrevUsuario] = useState(usuarioAEditar);
-  const [formData, setFormData] = useState(usuarioAEditar || estadoInicial);
+  const [formData, setFormData] = useState(estadoInicial);
   const [roles, setRoles] = useState([]);
 
-  if (usuarioAEditar !== prevUsuario) {
-    setPrevUsuario(usuarioAEditar);
-    setFormData(usuarioAEditar || estadoInicial);
-  }
-
+  // Cargar los roles de la base de datos cuando se abre el modal
   useEffect(() => {
     if (isOpen) {
       obtenerRoles().then(setRoles).catch(console.error);
     }
   }, [isOpen]);
 
+  // Forma correcta de llenar los datos al editar
+  useEffect(() => {
+    if (usuarioAEditar) {
+      // Extraemos el idRol del objeto anidado 'rol' que manda Spring Boot
+      setFormData({
+        ...usuarioAEditar,
+        idRol: usuarioAEditar.rol?.idRol || 2 
+      });
+    } else {
+      setFormData(estadoInicial);
+    }
+  }, [usuarioAEditar, isOpen]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(formData);
+    
+    // EL SECRETO ESTÁ AQUÍ: Construimos el objeto como lo espera Java
+    const payloadParaSpringBoot = {
+      ...formData,
+      rol: { idRol: formData.idRol } // Creamos el objeto anidado
+    };
+    
+    onSave(payloadParaSpringBoot);
   };
 
   if (!isOpen) return null;
@@ -75,8 +90,8 @@ const UsuarioModal = ({ isOpen, onClose, onSave, usuarioAEditar }) => {
           </div>
 
           <div className="mt-6 flex justify-end gap-3">
-            <button type="button" onClick={onClose} className="px-4 py-2 border rounded text-slate-600 hover:bg-slate-100">Cancelar</button>
-            <button type="submit" className="px-4 py-2 bg-blue-600 text-white font-bold rounded shadow hover:bg-blue-700">
+            <button type="button" onClick={onClose} className="px-4 py-2 border rounded text-slate-600 hover:bg-slate-100 cursor-pointer border-none">Cancelar</button>
+            <button type="submit" className="px-4 py-2 bg-blue-600 text-white font-bold rounded shadow hover:bg-blue-700 cursor-pointer border-none">
               {esEdicion ? 'Actualizar' : 'Guardar'}
             </button>
           </div>

@@ -3,12 +3,19 @@ import { Search, Plus, Download, Eye, Edit, Trash2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+
 import { obtenerProductos, crearProducto, actualizarProducto, eliminarProducto } from '../services/inventory.service';
+// 1. IMPORTAMOS EL SERVICIO DE PROVEEDORES
+import { obtenerProveedores } from '../services/proveedor.service';
+
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
 
 const Inventory = () => {
   const [products, setProducts] = useState([]);
+  // 2. CREAMOS EL ESTADO PARA GUARDAR LOS PROVEEDORES
+  const [proveedoresLista, setProveedoresList] = useState([]);
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [busqueda, setBusqueda] = useState('');
@@ -20,18 +27,15 @@ const Inventory = () => {
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
   
   const [nuevoProducto, setNuevoProducto] = useState({
-    codigoBarras: '', nombre: '', precioCompra: 0, precioVenta: 0, stock: 0, idCategoria: 1, idProveedor: 1, estado: true
+    codigoBarras: '', nombre: '', precioCompra: 0, precioVenta: 0, stock: 0, idCategoria: 1, idProveedor: '', estado: true
   });
 
-  // Solución react-hooks/set-state-in-effect: 
-  // Evitamos llamar a setLoading(true) de forma síncrona en el primer montaje.
   const fetchInventory = async (isInitial = false) => {
     try {
       if (!isInitial) setLoading(true);
       const data = await obtenerProductos();
       setProducts(data);
     } catch (err) {
-      // Solución no-unused-vars y S2486
       console.error("Error al conectar con la base de datos:", err);
       setError("Error al conectar con el servidor de Spring Boot");
     } finally {
@@ -39,9 +43,21 @@ const Inventory = () => {
     }
   };
 
+  // 3. CARGAMOS LOS PROVEEDORES AL INICIAR LA PANTALLA
   useEffect(() => { 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchInventory(true); 
+    
+    const cargarProveedores = async () => {
+      try {
+        const data = await obtenerProveedores();
+        // Filtramos para mostrar solo los proveedores ACTIVOS (estado === true)
+        setProveedoresList(data.filter(p => p.estado === true));
+      } catch (err) {
+        console.error("Error al cargar la lista de proveedores", err);
+      }
+    };
+    
+    cargarProveedores();
   }, []);
 
   const productosFiltrados = products.filter(producto => 
@@ -77,11 +93,10 @@ const Inventory = () => {
     try {
       await crearProducto(nuevoProducto);
       setMostrarModalCrear(false); 
-      setNuevoProducto({ codigoBarras: '', nombre: '', precioCompra: 0, precioVenta: 0, stock: 0, idCategoria: 1, idProveedor: 1, estado: true });
+      setNuevoProducto({ codigoBarras: '', nombre: '', precioCompra: 0, precioVenta: 0, stock: 0, idCategoria: 1, idProveedor: '', estado: true });
       await fetchInventory(); 
       toast.success("¡Producto añadido con éxito!"); 
     } catch (err) {
-      // Solución no-unused-vars y S2486
       console.error("Error al crear producto:", err);
       toast.error("Hubo un error al guardar el producto.");
     }
@@ -98,7 +113,6 @@ const Inventory = () => {
       await fetchInventory(); 
       toast.success("¡Producto actualizado con éxito!"); 
     } catch (err) {
-      // Solución no-unused-vars y S2486
       console.error("Error al actualizar producto:", err);
       toast.error("Hubo un error al actualizar el producto.");
     }
@@ -114,7 +128,6 @@ const Inventory = () => {
         await fetchInventory(); 
         toast.success("¡Producto eliminado con éxito!");
       } catch (err) {
-        // Solución no-unused-vars y S2486
         console.error("Error al eliminar producto:", err);
         toast.error("No se pudo eliminar por restricciones en la base de datos.");
       }
@@ -197,7 +210,6 @@ const Inventory = () => {
             <h2 className="text-xl font-bold mb-4 text-slate-800">Añadir Nuevo Producto</h2>
             <form onSubmit={handleGuardarProducto}>
               <div className="space-y-4">
-                {/* Solución S6853: Asignación de id y htmlFor en todos los campos */}
                 <div>
                   <label htmlFor="crear-nombre" className="block text-xs font-bold mb-1 text-slate-500 uppercase">Nombre</label>
                   <input id="crear-nombre" type="text" required className="w-full border border-slate-300 p-2 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none" value={nuevoProducto.nombre} onChange={(e) => setNuevoProducto({...nuevoProducto, nombre: e.target.value})} />
@@ -220,13 +232,23 @@ const Inventory = () => {
                   <label htmlFor="crear-stock" className="block text-xs font-bold mb-1 text-slate-500 uppercase">Stock Inicial</label>
                   <input id="crear-stock" type="number" required className="w-full border border-slate-300 p-2 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none" value={nuevoProducto.stock} onChange={(e) => setNuevoProducto({...nuevoProducto, stock: e.target.value ? Number.parseInt(e.target.value, 10) : ''})} />
                 </div>
+                
+                {/* 4. MODIFICACIÓN: SELECT DINÁMICO DE PROVEEDORES (CREAR) */}
                 <div>
                   <label htmlFor="crear-proveedor" className="block text-xs font-bold mb-1 text-slate-500 uppercase">Conectar a Proveedor</label>
-                  <select id="crear-proveedor" required className="w-full border border-slate-300 p-2 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium" value={nuevoProducto.idProveedor} onChange={(e) => setNuevoProducto({...nuevoProducto, idProveedor: Number(e.target.value)})}>
-                    <option value={1}>Distribuidora Principal (Por Defecto)</option>
-                    <option value={2}>Alicorp S.A.A.</option>
-                    <option value={3}>Arca Continental Lindley (Coca-Cola)</option>
-                    <option value={4}>Gloria S.A.</option>
+                  <select 
+                    id="crear-proveedor" 
+                    required 
+                    className="w-full border border-slate-300 p-2 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium" 
+                    value={nuevoProducto.idProveedor} 
+                    onChange={(e) => setNuevoProducto({...nuevoProducto, idProveedor: Number(e.target.value)})}
+                  >
+                    <option value="" disabled>-- Seleccione un Proveedor --</option>
+                    {proveedoresLista.map((prov) => (
+                      <option key={prov.idProveedor} value={prov.idProveedor}>
+                        {prov.empresa}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -246,7 +268,6 @@ const Inventory = () => {
             <h2 className="text-xl font-bold mb-4 text-slate-800 flex items-center gap-2"><Edit size={20}/> Editar Producto</h2>
             <form onSubmit={handleActualizarProducto}>
               <div className="space-y-4">
-                {/* Solución S6853: Asignación de id y htmlFor en todos los campos */}
                 <div>
                   <label htmlFor="editar-nombre" className="block text-xs font-bold mb-1 text-slate-500 uppercase">Nombre</label>
                   <input id="editar-nombre" type="text" required className="w-full border border-slate-300 p-2 rounded-lg bg-slate-50 focus:ring-2 focus:ring-amber-500 outline-none" value={productoSeleccionado.nombre} onChange={(e) => setProductoSeleccionado({...productoSeleccionado, nombre: e.target.value})} />
@@ -265,13 +286,23 @@ const Inventory = () => {
                   <label htmlFor="editar-stock" className="block text-xs font-bold mb-1 text-slate-500 uppercase">Stock Actual</label>
                   <input id="editar-stock" type="number" required className="w-full border border-slate-300 p-2 rounded-lg bg-slate-50 focus:ring-2 focus:ring-amber-500 outline-none" value={productoSeleccionado.stock} onChange={(e) => setProductoSeleccionado({...productoSeleccionado, stock: e.target.value ? Number.parseInt(e.target.value, 10) : ''})} />
                 </div>
+                
+                {/* 5. MODIFICACIÓN: SELECT DINÁMICO DE PROVEEDORES (EDITAR) */}
                 <div>
                   <label htmlFor="editar-proveedor" className="block text-xs font-bold mb-1 text-slate-500 uppercase">Actualizar Proveedor</label>
-                  <select id="editar-proveedor" required className="w-full border border-slate-300 p-2 rounded-lg bg-white focus:ring-2 focus:ring-amber-500 outline-none text-sm font-medium" value={productoSeleccionado.idProveedor || 1} onChange={(e) => setProductoSeleccionado({...productoSeleccionado, idProveedor: Number(e.target.value)})}>
-                    <option value={1}>Distribuidora Principal</option>
-                    <option value={2}>Alicorp S.A.A.</option>
-                    <option value={3}>Arca Continental Lindley (Coca-Cola)</option>
-                    <option value={4}>Gloria S.A.</option>
+                  <select 
+                    id="editar-proveedor" 
+                    required 
+                    className="w-full border border-slate-300 p-2 rounded-lg bg-white focus:ring-2 focus:ring-amber-500 outline-none text-sm font-medium" 
+                    value={productoSeleccionado.idProveedor || ''} 
+                    onChange={(e) => setProductoSeleccionado({...productoSeleccionado, idProveedor: Number(e.target.value)})}
+                  >
+                    <option value="" disabled>-- Seleccione un Proveedor --</option>
+                    {proveedoresLista.map((prov) => (
+                      <option key={prov.idProveedor} value={prov.idProveedor}>
+                        {prov.empresa}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>

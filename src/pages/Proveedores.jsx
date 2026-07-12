@@ -76,7 +76,6 @@ const Proveedores = () => {
     setIsModalOpen(true);
   };
 
-  // 2. MODIFICADO: Usamos toast para guardar y actualizar
   const handleSaveProveedor = async (datosProveedor) => {
     try {
       if (proveedorSeleccionado) {
@@ -94,26 +93,29 @@ const Proveedores = () => {
     }
   };
 
-  // 3. MODIFICADO: Usamos SweetAlert2 para la confirmación de eliminación
-  const handleDelete = async (id) => {
+  // NUEVO: Función handleDesactivar (Borrado Lógico)
+  const handleDesactivar = async (proveedor) => {
     const confirmacion = await Swal.fire({
-      title: '¿Estás seguro?',
-      text: "Se eliminará este proveedor del directorio",
+      title: '¿Desactivar Proveedor?',
+      text: "El proveedor pasará a estado INACTIVO. Sus productos registrados no se verán afectados.",
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#dc2626',
-      cancelButtonColor: '#94a3b8',
-      confirmButtonText: 'Sí, eliminar',
+      confirmButtonColor: '#f59e0b', // Ámbar de Tailwind
+      cancelButtonColor: '#94a3b8',  // Gris de Tailwind
+      confirmButtonText: 'Sí, desactivar',
       cancelButtonText: 'Cancelar'
     });
 
     if (confirmacion.isConfirmed) {
       try {
-        await eliminarProveedor(id);
+        // En lugar de llamar a eliminarProveedor, cambiamos su estado y lo actualizamos
+        const proveedorDesactivado = { ...proveedor, estado: false };
+        await actualizarProveedor(proveedor.idProveedor, proveedorDesactivado);
+        
         fetchProveedores();
-        toast.success("¡Proveedor eliminado con éxito!");
+        toast.success("¡Proveedor desactivado con éxito!");
       } catch (err) {
-        toast.error("No se pudo eliminar el proveedor por seguridad de la base de datos.");
+        toast.error("Hubo un problema al desactivar el proveedor.");
         console.error(err);
       }
     }
@@ -211,7 +213,8 @@ const Proveedores = () => {
                       <button onClick={() => handleOpenEditar(p)} className="hover:text-amber-500 transition-colors bg-transparent border-none cursor-pointer" title="Editar Proveedor">
                         <Edit size={18} />
                       </button>
-                      <button onClick={() => handleDelete(p.idProveedor)} className="hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer" title="Eliminar">
+                      {/* NUEVO: Llamamos a handleDesactivar pasando todo el objeto 'p' */}
+                      <button onClick={() => handleDesactivar(p)} className="hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer" title="Desactivar">
                         <Trash2 size={18} />
                       </button>
                     </div>
