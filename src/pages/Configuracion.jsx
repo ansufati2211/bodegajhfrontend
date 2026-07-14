@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Shield, Plus, Edit, Trash2 } from 'lucide-react';
-import { obtenerUsuarios, crearUsuario, actualizarUsuario, eliminarUsuario } from '../services/usuario.service';
+import { Settings, Shield, Plus, Edit, Trash2, RefreshCw } from 'lucide-react';
+import { obtenerUsuarios, crearUsuario, actualizarUsuario, toggleEstadoUsuario } from '../services/usuario.service';
 import UsuarioModal from '../components/UsuarioModal';
-
-// 1. Importamos nuestras librerías de notificaciones modernas
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
 
@@ -13,23 +11,18 @@ const Configuracion = () => {
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
 
   const cargarDatos = async () => {
-    try { 
-      setUsuarios(await obtenerUsuarios()); 
-    } catch (error) { 
-      console.error(error); 
+    try {
+      setUsuarios(await obtenerUsuarios());
+    } catch (error) {
+      console.error(error);
     }
   };
 
   useEffect(() => {
-    const inicializar = async () => {
-      await cargarDatos();
-    };
-
-    inicializar();
+    cargarDatos();
   }, []);
 
- // 2. MODIFICADO: Usamos toast.success y toast.error en lugar de alert()
- const handleGuardar = async (datos) => {
+  const handleGuardar = async (datos) => {
     try {
       if (usuarioSeleccionado) {
         await actualizarUsuario(usuarioSeleccionado.idUsuario, datos);
@@ -40,33 +33,33 @@ const Configuracion = () => {
       }
       setIsModalOpen(false);
       cargarDatos();
-    } catch (error) { 
+    } catch (error) {
       console.error("Error al guardar el usuario:", error);
-      toast.error('Error al guardar el usuario. Verifica los datos.'); 
+      toast.error('Error al guardar el usuario. Verifica los datos.');
     }
   };
 
-  // 3. MODIFICADO: Usamos SweetAlert2 en lugar del feo globalThis.confirm()
-  const handleEliminar = async (id) => {
+  const handleToggleEstado = async (usuario) => {
+    const accion = usuario.estado ? 'desactivar' : 'reactivar';
     const confirmacion = await Swal.fire({
-      title: '¿Estás seguro?',
-      text: "El usuario perderá el acceso al sistema inmediatamente",
+      title: `¿Estás seguro?`,
+      text: `El usuario será ${accion}do en el sistema.`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#dc2626', // Rojo de Tailwind (peligro)
-      cancelButtonColor: '#94a3b8',  // Gris de Tailwind (cancelar)
-      confirmButtonText: 'Sí, eliminar acceso',
+      confirmButtonColor: usuario.estado ? '#dc2626' : '#10b981',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: `Sí, ${accion}`,
       cancelButtonText: 'Cancelar'
     });
 
     if (confirmacion.isConfirmed) {
       try {
-        await eliminarUsuario(id);
+        await toggleEstadoUsuario(usuario.idUsuario);
         cargarDatos();
-        toast.success('¡Usuario eliminado correctamente!');
+        toast.success(`¡Usuario ${accion}do correctamente!`);
       } catch (error) {
-        toast.error('No se pudo eliminar el usuario.');
-        console.error("Error al eliminar usuario:", error);
+        toast.error(`No se pudo ${accion} el usuario.`);
+        console.error("Error al alternar estado:", error);
       }
     }
   };
@@ -85,7 +78,6 @@ const Configuracion = () => {
             <Plus size={18} /> Nuevo Usuario
           </button>
         </div>
-
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <table className="w-full text-left">
             <thead className="bg-slate-100 text-slate-500 uppercase text-xs font-bold">
@@ -116,8 +108,13 @@ const Configuracion = () => {
                     <button type="button" onClick={() => { setUsuarioSeleccionado(u); setIsModalOpen(true); }} className="text-amber-500 hover:text-amber-600 border-none bg-transparent cursor-pointer" title="Editar">
                       <Edit size={18}/>
                     </button>
-                    <button type="button" onClick={() => handleEliminar(u.idUsuario)} className="text-red-500 hover:text-red-700 border-none bg-transparent cursor-pointer" title="Eliminar">
-                      <Trash2 size={18}/>
+                    <button 
+                      type="button" 
+                      onClick={() => handleToggleEstado(u)} 
+                      className={`border-none bg-transparent cursor-pointer transition-colors ${u.estado ? 'text-slate-400 hover:text-red-500' : 'text-slate-400 hover:text-emerald-500'}`} 
+                      title={u.estado ? "Bloquear" : "Reactivar"}
+                    >
+                      {u.estado ? <Trash2 size={18}/> : <RefreshCw size={18}/>}
                     </button>
                   </td>
                 </tr>

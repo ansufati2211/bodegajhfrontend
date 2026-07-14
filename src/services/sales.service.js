@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8080/api/ventas';
+// BORRAR ESTO: const API_URL = 'http://localhost:8080/api/ventas';
+const API_URL = `${import.meta.env.VITE_API_URL}/ventas`;
 
 // Configuración para incluir el Token de seguridad en cada petición
 const getAuthHeader = () => {

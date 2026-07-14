@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Download, Edit, Trash2, Wallet } from 'lucide-react';
+import { Search, Plus, Download, Edit, Trash2, Wallet, RefreshCw } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-import { obtenerClientes, crearCliente, actualizarCliente, eliminarCliente } from '../services/cliente.service';
+import autoTable from 'jspdf-autotable';
+import { obtenerClientes, crearCliente, actualizarCliente } from '../services/cliente.service';
 import ClienteModal from '../components/ClienteModal';
 
 // 1. Importamos nuestras librerías modernas
@@ -63,7 +63,7 @@ const Clientes = () => {
     const tableData = clientesFiltrados.map(c => [
       c.dni, `${c.nombres} ${c.apellidos}`, c.telefono || '-', `S/${c.deudaTotal || 0}`
     ]);
-    doc.autoTable({ head: [['DNI', 'Cliente', 'Teléfono', 'Deuda Acumulada']], body: tableData, startY: 20 });
+    autoTable(doc, { head: [['DNI', 'Cliente', 'Teléfono', 'Deuda Acumulada']], body: tableData, startY: 20 });
     doc.save("Directorio_Clientes.pdf");
   };
 
@@ -77,7 +77,6 @@ const Clientes = () => {
     setIsModalOpen(true);
   };
 
-  // 2. MODIFICADO: Usamos toast() en lugar de alert()
   const handleSaveCliente = async (datosCliente) => {
     try {
       if (clienteSeleccionado) {
@@ -95,26 +94,26 @@ const Clientes = () => {
     }
   };
 
-  // 3. MODIFICADO: Usamos SweetAlert2 en lugar de confirm() y toast() para el resultado
-  const handleDelete = async (id) => {
+  // NUEVO: Función para Activar o Desactivar
+  const handleToggleEstado = async (cliente) => {
+    const accion = cliente.estado ? 'desactivar' : 'reactivar';
     const confirmacion = await Swal.fire({
-      title: '¿Estás seguro?',
-      text: "Se eliminará este cliente del directorio",
+      title: `¿Deseas ${accion} a este cliente?`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#dc2626', // Rojo de tailwind
-      cancelButtonColor: '#94a3b8',  // Gris de tailwind
-      confirmButtonText: 'Sí, eliminar',
+      confirmButtonColor: cliente.estado ? '#dc2626' : '#10b981',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: `Sí, ${accion}`,
       cancelButtonText: 'Cancelar'
     });
 
     if (confirmacion.isConfirmed) {
       try {
-        await eliminarCliente(id);
+        await actualizarCliente(cliente.idCliente, { ...cliente, estado: !cliente.estado });
         fetchClientes();
-        toast.success("¡Cliente eliminado con éxito!");
+        toast.success(`¡Cliente ${accion}do con éxito!`);
       } catch (err) {
-        toast.error("No se pudo eliminar el cliente por seguridad de la base de datos.");
+        toast.error("No se pudo cambiar el estado del cliente.");
         console.error(err);
       }
     }
@@ -131,7 +130,6 @@ const Clientes = () => {
 
   return (
     <div className="flex-1 flex flex-col bg-slate-50 min-h-screen">
-      {/* ... TU CÓDIGO DE INTERFAZ QUEDA EXACTAMENTE IGUAL AQUÍ ... */}
       <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10">
         <h1 className="text-lg font-bold text-slate-800 uppercase tracking-wide">
           SISTEMA DE VENTAS E INVENTARIO - ADMIN
@@ -220,8 +218,13 @@ const Clientes = () => {
                       <button type="button" onClick={() => handleOpenEditar(c)} className="hover:text-amber-500 transition-colors bg-transparent border-none cursor-pointer" title="Editar Cliente">
                         <Edit size={18} />
                       </button>
-                      <button type="button" onClick={() => handleDelete(c.idCliente)} className="hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer" title="Eliminar">
-                        <Trash2 size={18} />
+                      <button 
+                        type="button" 
+                        onClick={() => handleToggleEstado(c)} 
+                        className={`transition-colors bg-transparent border-none cursor-pointer ${c.estado ? 'text-slate-400 hover:text-red-500' : 'text-slate-400 hover:text-emerald-500'}`} 
+                        title={c.estado ? "Desactivar" : "Reactivar"}
+                      >
+                        {c.estado ? <Trash2 size={18} /> : <RefreshCw size={18} />}
                       </button>
                     </div>
                   </td>

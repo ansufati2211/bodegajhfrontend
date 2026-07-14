@@ -2,30 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { Search, Plus, Download, Eye, Edit, Trash2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-
+import autoTable from 'jspdf-autotable';
 import { obtenerProductos, crearProducto, actualizarProducto, eliminarProducto } from '../services/inventory.service';
-// 1. IMPORTAMOS EL SERVICIO DE PROVEEDORES
 import { obtenerProveedores } from '../services/proveedor.service';
-
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
 
 const Inventory = () => {
   const [products, setProducts] = useState([]);
-  // 2. CREAMOS EL ESTADO PARA GUARDAR LOS PROVEEDORES
   const [proveedoresLista, setProveedoresList] = useState([]);
-  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [busqueda, setBusqueda] = useState('');
-  
   const [mostrarModalCrear, setMostrarModalCrear] = useState(false);
   const [mostrarModalVer, setMostrarModalVer] = useState(false);
   const [mostrarModalEditar, setMostrarModalEditar] = useState(false);
-  
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
-  
   const [nuevoProducto, setNuevoProducto] = useState({
     codigoBarras: '', nombre: '', precioCompra: 0, precioVenta: 0, stock: 0, idCategoria: 1, idProveedor: '', estado: true
   });
@@ -43,20 +35,16 @@ const Inventory = () => {
     }
   };
 
-  // 3. CARGAMOS LOS PROVEEDORES AL INICIAR LA PANTALLA
-  useEffect(() => { 
-    fetchInventory(true); 
-    
+  useEffect(() => {
+    fetchInventory(true);
     const cargarProveedores = async () => {
       try {
         const data = await obtenerProveedores();
-        // Filtramos para mostrar solo los proveedores ACTIVOS (estado === true)
         setProveedoresList(data.filter(p => p.estado === true));
       } catch (err) {
         console.error("Error al cargar la lista de proveedores", err);
       }
     };
-    
     cargarProveedores();
   }, []);
 
@@ -84,40 +72,63 @@ const Inventory = () => {
     const doc = new jsPDF();
     doc.text("Reporte de Inventario - BODEGA JH", 14, 10);
     const tableData = productosFiltrados.map(p => [ p.codigoBarras || 'N/A', p.nombre, `S/ ${(p.precioVenta || 0).toFixed(2)}`, p.stock ]);
-    doc.autoTable({ head: [['SKU', 'Nombre', 'Precio Venta', 'Stock']], body: tableData, startY: 20 });
+    autoTable(doc, { head: [['SKU', 'Nombre', 'Precio Venta', 'Stock']], body: tableData, startY: 20 });
     doc.save("Reporte_Inventario.pdf");
   };
 
-  const handleGuardarProducto = async (e) => {
-    e.preventDefault(); 
+const handleGuardarProducto = async (e) => {
+    e.preventDefault();
     try {
       await crearProducto(nuevoProducto);
-      setMostrarModalCrear(false); 
+      setMostrarModalCrear(false);
       setNuevoProducto({ codigoBarras: '', nombre: '', precioCompra: 0, precioVenta: 0, stock: 0, idCategoria: 1, idProveedor: '', estado: true });
-      await fetchInventory(); 
-      toast.success("¡Producto añadido con éxito!"); 
+      await fetchInventory();
+      toast.success("¡Producto añadido con éxito!");
     } catch (err) {
-      console.error("Error al crear producto:", err);
-      toast.error("Hubo un error al guardar el producto.");
+      // 1. Extraemos el mensaje exacto enviado desde el backend de Spring Boot
+      const mensajeError = err.response?.data?.error || err.response?.data?.mensaje || "Verifica los datos del producto.";
+      
+      // 2. Mostramos una alerta elegante y clara en el centro de la pantalla
+      Swal.fire({
+        icon: 'error',
+        title: 'Operación rechazada',
+        text: mensajeError,
+        confirmButtonColor: '#3b82f6'
+      });
+      
+      // 3. Imprimimos una advertencia controlada en consola
+      console.warn("⚠️ Validación del sistema:", mensajeError);
     }
   };
 
+  // 👇 ¡ESTAS SON LAS DOS LÍNEAS QUE SE HABÍAN BORRADO! 👇
   const abrirModalVer = (producto) => { setProductoSeleccionado(producto); setMostrarModalVer(true); };
   const abrirModalEditar = (producto) => { setProductoSeleccionado({ ...producto }); setMostrarModalEditar(true); };
+  // 👆 ================================================= 👆
 
   const handleActualizarProducto = async (e) => {
     e.preventDefault();
     try {
       await actualizarProducto(productoSeleccionado.idProducto, productoSeleccionado);
       setMostrarModalEditar(false);
-      await fetchInventory(); 
-      toast.success("¡Producto actualizado con éxito!"); 
+      await fetchInventory();
+      toast.success("¡Producto actualizado con éxito!");
     } catch (err) {
-      console.error("Error al actualizar producto:", err);
-      toast.error("Hubo un error al actualizar el producto.");
+      // 1. Extraemos el mensaje exacto enviado desde el backend de Spring Boot
+      const mensajeError = err.response?.data?.error || err.response?.data?.mensaje || "Verifica los datos del producto.";
+      
+      // 2. Mostramos una alerta elegante y clara en el centro de la pantalla
+      Swal.fire({
+        icon: 'error',
+        title: 'Actualización rechazada',
+        text: mensajeError,
+        confirmButtonColor: '#3b82f6'
+      });
+      
+      // 3. Imprimimos una advertencia controlada en consola
+      console.warn("⚠️ Validación del sistema:", mensajeError);
     }
   };
-
   const handleEliminarProducto = async (id) => {
     const confirmacion = await Swal.fire({
       title: '¿Estás seguro?', text: "Se eliminará el producto del inventario.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', cancelButtonColor: '#94a3b8', confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar'
@@ -125,7 +136,7 @@ const Inventory = () => {
     if (confirmacion.isConfirmed) {
       try {
         await eliminarProducto(id);
-        await fetchInventory(); 
+        await fetchInventory();
         toast.success("¡Producto eliminado con éxito!");
       } catch (err) {
         console.error("Error al eliminar producto:", err);
@@ -150,10 +161,8 @@ const Inventory = () => {
           SISTEMA DE VENTAS E INVENTARIO
         </h1>
       </header>
-
       <section className="p-4 lg:p-8 overflow-y-auto">
         {error && <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>}
-
         <div className="flex flex-col lg:flex-row justify-between lg:items-center mb-6 gap-4">
           <h2 className="text-2xl lg:text-3xl font-extrabold text-slate-800">INVENTARIO</h2>
           <div className="flex flex-wrap gap-2 lg:gap-3">
@@ -162,7 +171,6 @@ const Inventory = () => {
             <button onClick={exportarPDF} className="flex-1 lg:flex-none flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold shadow-md"><Download size={18} /> PDF</button>
           </div>
         </div>
-
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
           <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div className="relative w-full sm:w-80">
@@ -201,9 +209,6 @@ const Inventory = () => {
         </div>
       </section>
 
-      {/* --- MODALES --- */}
-
-      {/* Modal Crear */}
       {mostrarModalCrear && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
           <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto modal-enter shadow-2xl">
@@ -232,8 +237,6 @@ const Inventory = () => {
                   <label htmlFor="crear-stock" className="block text-xs font-bold mb-1 text-slate-500 uppercase">Stock Inicial</label>
                   <input id="crear-stock" type="number" required className="w-full border border-slate-300 p-2 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none" value={nuevoProducto.stock} onChange={(e) => setNuevoProducto({...nuevoProducto, stock: e.target.value ? Number.parseInt(e.target.value, 10) : ''})} />
                 </div>
-                
-                {/* 4. MODIFICACIÓN: SELECT DINÁMICO DE PROVEEDORES (CREAR) */}
                 <div>
                   <label htmlFor="crear-proveedor" className="block text-xs font-bold mb-1 text-slate-500 uppercase">Conectar a Proveedor</label>
                   <select 
@@ -245,9 +248,7 @@ const Inventory = () => {
                   >
                     <option value="" disabled>-- Seleccione un Proveedor --</option>
                     {proveedoresLista.map((prov) => (
-                      <option key={prov.idProveedor} value={prov.idProveedor}>
-                        {prov.empresa}
-                      </option>
+                      <option key={prov.idProveedor} value={prov.idProveedor}>{prov.empresa}</option>
                     ))}
                   </select>
                 </div>
@@ -261,7 +262,6 @@ const Inventory = () => {
         </div>
       )}
 
-      {/* Modal Editar */}
       {mostrarModalEditar && productoSeleccionado && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
           <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto modal-enter shadow-2xl">
@@ -286,8 +286,6 @@ const Inventory = () => {
                   <label htmlFor="editar-stock" className="block text-xs font-bold mb-1 text-slate-500 uppercase">Stock Actual</label>
                   <input id="editar-stock" type="number" required className="w-full border border-slate-300 p-2 rounded-lg bg-slate-50 focus:ring-2 focus:ring-amber-500 outline-none" value={productoSeleccionado.stock} onChange={(e) => setProductoSeleccionado({...productoSeleccionado, stock: e.target.value ? Number.parseInt(e.target.value, 10) : ''})} />
                 </div>
-                
-                {/* 5. MODIFICACIÓN: SELECT DINÁMICO DE PROVEEDORES (EDITAR) */}
                 <div>
                   <label htmlFor="editar-proveedor" className="block text-xs font-bold mb-1 text-slate-500 uppercase">Actualizar Proveedor</label>
                   <select 
@@ -299,9 +297,7 @@ const Inventory = () => {
                   >
                     <option value="" disabled>-- Seleccione un Proveedor --</option>
                     {proveedoresLista.map((prov) => (
-                      <option key={prov.idProveedor} value={prov.idProveedor}>
-                        {prov.empresa}
-                      </option>
+                      <option key={prov.idProveedor} value={prov.idProveedor}>{prov.empresa}</option>
                     ))}
                   </select>
                 </div>
@@ -313,9 +309,8 @@ const Inventory = () => {
             </form>
           </div>
         </div>
-      )} 
-      
-      {/* Modal Ver (Solo Vista) */}
+      )}
+
       {mostrarModalVer && productoSeleccionado && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl modal-enter">
@@ -332,7 +327,7 @@ const Inventory = () => {
             <div className="mt-6"><button onClick={() => setMostrarModalVer(false)} className="w-full py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 font-bold border-none cursor-pointer">Cerrar Ficha</button></div>
           </div>
         </div>
-      )}       
+      )}
     </div>
   );
 };

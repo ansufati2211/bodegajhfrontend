@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Plus, Download, Edit, Trash2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { obtenerProveedores, crearProveedor, actualizarProveedor, eliminarProveedor } from '../services/proveedor.service';
 import ProveedorModal from '../components/ProveedorModal';
 
@@ -62,7 +62,7 @@ const Proveedores = () => {
     const tableData = proveedoresFiltrados.map(p => [
       p.empresa, p.nombreVendedor, p.telefono, p.diasVisita || '-'
     ]);
-    doc.autoTable({ head: [['Empresa', 'Contacto', 'Teléfono', 'Días de Visita']], body: tableData, startY: 20 });
+    autoTable(doc, { head: [['Empresa', 'Contacto', 'Teléfono', 'Días de Visita']], body: tableData, startY: 20 });
     doc.save("Directorio_Proveedores.pdf");
   };
 

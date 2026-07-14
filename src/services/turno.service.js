@@ -1,26 +1,19 @@
 import api from './api';
+
+// Usamos la instancia 'api' (axios) ya configurada con baseURL + token,
+// en vez de fetch con una API_URL que nunca existió.
+
 export const verificarCaja = async (idUsuario) => {
-  const response = await fetch(`${API_URL}/verificar/${idUsuario}`);
-  if (!response.ok) throw new Error('Error al verificar la caja');
-  return response.json();
+  const respuesta = await api.get(`/turnos/verificar/${idUsuario}`);
+  return respuesta.data;
 };
 
 export const abrirCaja = async (datosTurno) => {
-  const response = await fetch(`${API_URL}/abrir`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(datosTurno)
-  });
-  if (!response.ok) throw new Error('Error al abrir la caja');
-  return response.json();
+  const respuesta = await api.post('/turnos/abrir', datosTurno);
+  return respuesta.data;
 };
 
 export const cerrarCaja = async (idTurno, datosCierre) => {
-  const response = await fetch(`${API_URL}/cerrar/${idTurno}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(datosCierre)
-  });
-  if (!response.ok) throw new Error('Error al cerrar la caja');
-  return response.json();
+  const respuesta = await api.put(`/turnos/cerrar/${idTurno}`, datosCierre);
+  return respuesta.data;
 };

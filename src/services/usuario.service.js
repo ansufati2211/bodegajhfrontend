@@ -24,3 +24,7 @@ export const eliminarUsuario = async (id) => {
   const { data } = await api.delete(`/usuarios/${id}`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
   return data;
 };
+export const toggleEstadoUsuario = async (id) => {
+  const { data } = await api.put(`/usuarios/${id}/toggle-estado`, {}, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+  return data;
+};

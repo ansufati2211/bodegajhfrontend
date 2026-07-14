@@ -1,19 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, CreditCard, Banknote, PackageOpen } from 'lucide-react';
+import { BarChart3, TrendingUp, CreditCard, Banknote, PackageOpen, Download } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie } from 'recharts';
 import { obtenerHistorialVentas } from '../services/sales.service';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
-const COLORS = ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981']; // Colores modernos para el gráfico circular
+const COLORS = ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981'];
 
 const Reportes = () => {
   const [kpis, setKpis] = useState({ totalRecaudado: 0, totalVentas: 0, ticketPromedio: 0 });
   const [dataGrafico, setDataGrafico] = useState([]);
   const [dataPagos, setDataPagos] = useState([]);
+  const [historialCompleto, setHistorialCompleto] = useState([]);
 
   useEffect(() => {
     const procesarReportes = async () => {
       try {
         const historial = await obtenerHistorialVentas();
+        setHistorialCompleto(historial); // Guardamos la data para exportarla
 
         const ingresos = historial.reduce((sum, v) => sum + v.total, 0);
         setKpis({
@@ -27,6 +32,7 @@ const Reportes = () => {
           const fecha = v.fechaVenta.substring(0, 10);
           ventasPorDia[fecha] = (ventasPorDia[fecha] || 0) + v.total;
         });
+
         const chartData = Object.keys(ventasPorDia).slice(-7).map(fecha => ({ fecha, Ingresos: ventasPorDia[fecha] }));
         setDataGrafico(chartData);
 
@@ -39,21 +45,56 @@ const Reportes = () => {
           { name: 'Tarjeta', value: ta, fill: COLORS[3] }
         ].filter(d => d.value > 0));
 
-      } catch (error) { 
-        console.error("Error al cargar reportes", error); 
+      } catch (error) {
+        console.error("Error al cargar reportes", error);
       }
     };
     procesarReportes();
   }, []);
 
+  const exportarExcel = () => {
+    const dataExcel = historialCompleto.map(v => ({
+      'Comprobante': v.numeroComprobante || `#00${v.idVenta}`,
+      'Fecha': new Date(v.fechaVenta).toLocaleString(),
+      'Total (S/)': v.total,
+      'Efectivo': v.pagoEfectivo,
+      'Yape': v.pagoYape,
+      'Plin': v.pagoPlin,
+      'Tarjeta': v.pagoTarjeta,
+      'Crédito': v.esCredito ? 'SÍ' : 'NO'
+    }));
+    const ws = XLSX.utils.json_to_sheet(dataExcel);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Ventas");
+    XLSX.writeFile(wb, "Reporte_Finanzas.xlsx");
+  };
+
+  const exportarPDF = () => {
+    const doc = new jsPDF();
+    doc.text("Reporte Financiero de Ventas", 14, 10);
+    const tableData = historialCompleto.map(v => [
+      v.numeroComprobante || `#00${v.idVenta}`,
+      new Date(v.fechaVenta).toLocaleDateString(),
+      `S/ ${v.total.toFixed(2)}`,
+      v.esCredito ? 'CRÉDITO' : 'CONTADO'
+    ]);
+    autoTable(doc, { head: [['Comprobante', 'Fecha', 'Total', 'Tipo']], body: tableData, startY: 20 });
+    doc.save("Reporte_Finanzas.pdf");
+  };
+
   return (
     <div className="flex-1 flex flex-col bg-slate-50 min-h-screen p-4 lg:p-8">
-      <div className="mb-6 lg:mb-8">
-        <h2 className="text-2xl lg:text-3xl font-extrabold text-slate-800 flex items-center gap-3"><BarChart3 className="text-blue-600"/> Inteligencia de Negocios (BI)</h2>
-        <p className="text-slate-500 text-sm mt-1">Análisis financiero y estadísticas de rendimiento general.</p>
+      <div className="mb-6 lg:mb-8 flex flex-col md:flex-row md:items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl lg:text-3xl font-extrabold text-slate-800 flex items-center gap-3"><BarChart3 className="text-blue-600"/> Inteligencia de Negocios (BI)</h2>
+          <p className="text-slate-500 text-sm mt-1">Análisis financiero y estadísticas de rendimiento general.</p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={exportarExcel} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow transition-colors"><Download size={16}/> Excel</button>
+          <button onClick={exportarPDF} className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow transition-colors"><Download size={16}/> PDF</button>
+        </div>
       </div>
 
-      {/* TARJETAS KPI RESPONSIVAS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4 border-l-4 border-l-blue-500 hover:-translate-y-1 hover:shadow-md transition-all">
           <div className="bg-blue-100 p-3 rounded-full text-blue-600"><Banknote size={24}/></div>
@@ -69,10 +110,7 @@ const Reportes = () => {
         </div>
       </div>
 
-      {/* GRÁFICOS RESPONSIVOS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* GRÁFICO DE BARRAS (Evolución) */}
         <div className="col-span-1 lg:col-span-2 bg-white p-4 lg:p-6 rounded-xl border border-slate-200 shadow-sm">
           <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><TrendingUp size={18}/> Evolución de Ingresos (7 días)</h3>
           <div className="h-72 w-full">
@@ -93,8 +131,6 @@ const Reportes = () => {
             </ResponsiveContainer>
           </div>
         </div>
-
-        {/* GRÁFICO CIRCULAR (Métodos de pago) */}
         <div className="col-span-1 bg-white p-4 lg:p-6 rounded-xl border border-slate-200 shadow-sm">
           <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><CreditCard size={18}/> Métodos de Pago</h3>
           <div className="h-56 w-full">
@@ -115,7 +151,6 @@ const Reportes = () => {
             ))}
           </div>
         </div>
-
       </div>
     </div>
   );
