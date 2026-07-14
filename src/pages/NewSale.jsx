@@ -84,7 +84,6 @@ const NewSale = () => {
 
   const handleAbrirCaja = async (e) => {
     e.preventDefault();
-    // VALIDACIÓN ESTRICTA
     if (montoApertura === '' || Number(montoApertura) < 0) {
       return toast.error("Ingresa un monto inicial válido (0 o mayor).");
     }
@@ -214,30 +213,92 @@ const NewSale = () => {
 
   return (
     <>
-      <style>{`@media print { body * { visibility: hidden; } #zona-impresion, #zona-impresion * { visibility: visible; } #zona-impresion { position: absolute; left: 0; top: 0; width: 80mm; padding: 10px; font-family: monospace; color: black; } }`}</style>
-      <div id="zona-impresion" className="hidden print:block bg-white text-xs">
+      <style>{`
+        @media print { 
+          body * { visibility: hidden; margin: 0; padding: 0; } 
+          #zona-impresion, #zona-impresion * { visibility: visible; } 
+          #zona-impresion { 
+            position: absolute; 
+            left: 0; top: 0; 
+            width: 80mm; 
+            padding: 5mm; 
+            font-family: 'Courier New', Courier, monospace; 
+            color: #000; 
+            font-size: 12px;
+          } 
+          .ticket-divider { border-bottom: 1px dashed #000; margin: 8px 0; }
+        }
+      `}</style>
+
+      <div id="zona-impresion" className="hidden print:block bg-white text-black">
         {ticketImprimir && (
           <div className="w-full">
-            <h2 className="text-center font-bold text-lg mb-1">BODEGA JH</h2>
-            <p className="text-center mb-2">Av. Principal 123, Ica</p>
-            <p className="font-bold border-b border-black border-dashed pb-2 mb-2">
-              {ticketImprimir.tipo} {esCredito ? '(CRÉDITO)' : ''} <br /> 
-              Fecha: {ticketImprimir.fecha} <br /> 
-              Cajero: {ticketImprimir.cajero} <br />
-              Cliente: {ticketImprimir.cliente}
-            </p>
-            <table className="w-full text-left mb-2">
-              <thead><tr className="border-b border-black border-dashed"><th>CANT</th><th>DESC.</th><th className="text-right">IMP.</th></tr></thead>
+            {/* Cabecera del Ticket */}
+            <div className="text-center mb-4">
+              <h2 className="font-extrabold text-xl mb-1 tracking-widest">BODEGA JH</h2>
+              <p className="text-xs">Av. Abraham Valdelomar M-15</p>
+              <p className="text-xs">Parcona, Ica</p>
+              <p className="text-xs">RUC: 10215019875</p>
+            </div>
+
+            <div className="ticket-divider"></div>
+            
+            {/* Datos de la transacción */}
+            <div className="mb-3 text-xs leading-tight">
+              <p><span className="font-bold">{ticketImprimir.tipo}</span> {esCredito ? '- CRÉDITO' : ''}</p>
+              <p>COMP: <span className="font-bold">{turnoActivo?.idTurno ? `T-${String(turnoActivo.idTurno).padStart(5, '0')}` : '---'}</span></p>
+              <p>FECHA: {ticketImprimir.fecha}</p>
+              <p>CAJERO: {ticketImprimir.cajero.toUpperCase()}</p>
+              <p>CLIENTE: {ticketImprimir.cliente.toUpperCase()}</p>
+            </div>
+
+            <div className="ticket-divider"></div>
+
+            {/* Detalle de Productos */}
+            <table className="w-full text-left text-xs mb-2 border-collapse">
+              <thead>
+                <tr className="border-b border-dashed border-black">
+                  <th className="pb-1 w-8">CANT</th>
+                  <th className="pb-1">DESCRIPCIÓN</th>
+                  <th className="pb-1 text-right">IMP.</th>
+                </tr>
+              </thead>
               <tbody>
                 {ticketImprimir.items.map((item) => (
-                  <tr key={item.idProducto}><td className="align-top py-1">{item.cantidad}</td><td className="align-top py-1 pr-1">{item.nombre}</td><td className="align-top py-1 text-right">S/{item.subtotal.toFixed(2)}</td></tr>
+                  <tr key={item.idProducto}>
+                    <td className="align-top py-1 font-bold">{item.cantidad}</td>
+                    <td className="align-top py-1 pr-1">{item.nombre}</td>
+                    <td className="align-top py-1 text-right">S/{item.subtotal.toFixed(2)}</td>
+                  </tr>
                 ))}
               </tbody>
             </table>
-            <div className="flex justify-between font-bold text-sm border-t border-black border-dashed pt-2 mb-2">
-              <span>TOTAL:</span><span>S/ {ticketImprimir.total.toFixed(2)}</span>
+
+            <div className="ticket-divider"></div>
+
+            {/* Totales */}
+            <div className="flex justify-between font-extrabold text-sm mb-1">
+              <span>TOTAL A PAGAR:</span>
+              <span>S/ {ticketImprimir.total.toFixed(2)}</span>
             </div>
-            <p className="text-center mt-4 text-[10px]">¡Gracias por su compra!</p>
+
+            {/* Desglose de Pagos */}
+            <div className="text-xs text-right mt-2 space-y-1">
+              {ticketImprimir.pagos.efectivo > 0 && <p>EFECTIVO: S/ {ticketImprimir.pagos.efectivo.toFixed(2)}</p>}
+              {ticketImprimir.pagos.yape > 0 && <p>YAPE: S/ {ticketImprimir.pagos.yape.toFixed(2)}</p>}
+              {ticketImprimir.pagos.plin > 0 && <p>PLIN: S/ {ticketImprimir.pagos.plin.toFixed(2)}</p>}
+              {ticketImprimir.pagos.tarjeta > 0 && <p>TARJETA: S/ {ticketImprimir.pagos.tarjeta.toFixed(2)}</p>}
+              {ticketImprimir.pagos.vuelto > 0 && <p className="font-bold mt-1">VUELTO: S/ {ticketImprimir.pagos.vuelto.toFixed(2)}</p>}
+            </div>
+
+            <div className="ticket-divider mt-4"></div>
+            
+            {/* Pie del ticket */}
+            <div className="text-center mt-3">
+              <p className="text-[11px] font-bold">¡GRACIAS POR SU COMPRA!</p>
+              <p className="text-[10px] mt-1">Conserve su ticket</p>
+              <div className="font-[barcode] text-2xl tracking-widest mt-2 opacity-60">||| |||| | ||||| |||</div>
+            </div>
           </div>
         )}
       </div>

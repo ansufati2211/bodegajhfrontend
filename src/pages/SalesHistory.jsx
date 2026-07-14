@@ -58,8 +58,8 @@ const SalesHistory = () => {
   }
 
   // Ahora resetear limpia hasta la semana actual, no vacío
-  const limpiarFiltros = () => { setFechaInicio(strLunes); setFechaFin(strDomingo); setFiltroMedioPago('TODOS'); };
-
+// Limpia los campos por completo para mostrar el historial histórico sin límite de fechas
+  const limpiarFiltros = () => { setFechaInicio(''); setFechaFin(''); setFiltroMedioPago('TODOS'); };
   const totalRecaudado = ventasFiltradas.reduce((sum, v) => sum + v.total, 0);
 
   const verDetalles = (venta) => {
