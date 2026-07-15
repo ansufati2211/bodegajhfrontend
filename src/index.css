@@ -1,1 +1,218 @@
 @import "tailwindcss";
+
+/* ============================================================
+   SISTEMA DE DISEÑO — NEUMORFISMO + CLASIMORFISMO HÍBRIDO
+   Bodega JH — Sistema de Ventas e Inventario
+   ============================================================ */
+
+:root {
+  /* Paleta base */
+  --brand: #2563eb;
+  --brand-light: #3b82f6;
+  --brand-dark: #1d4ed8;
+  --accent: #f59e0b;
+  --bg-page: #f0f2f5;
+  --bg-surface: #ffffff;
+  --bg-surface-alt: #f8fafc;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+
+  /* Sombras Neumórficas (superficie clara) */
+  --neu-shadow: 6px 6px 12px rgba(0,0,0,.08), -6px -6px 12px rgba(255,255,255,.9);
+  --neu-shadow-hover: 4px 4px 8px rgba(0,0,0,.06), -4px -4px 8px rgba(255,255,255,.95);
+  --neu-shadow-pressed: inset 3px 3px 6px rgba(0,0,0,.08), inset -3px -3px 6px rgba(255,255,255,.9);
+  --neu-shadow-deep: 8px 8px 16px rgba(0,0,0,.1), -8px -8px 16px rgba(255,255,255,.95);
+  --neu-shadow-card: 4px 4px 10px rgba(0,0,0,.06), -2px -2px 6px rgba(255,255,255,.8);
+  --neu-shadow-input: inset 2px 2px 5px rgba(0,0,0,.06), inset -1px -1px 3px rgba(255,255,255,.8);
+
+  /* Sombras Neumórficas (superficie oscura — sidebar) */
+  --neu-shadow-dark: 4px 4px 8px rgba(0,0,0,.3), -2px -2px 4px rgba(255,255,255,.03);
+  --neu-shadow-dark-pressed: inset 3px 3px 6px rgba(0,0,0,.4), inset -1px -1px 3px rgba(255,255,255,.03);
+
+  /* Sombras Clasimórficas (modales, tooltips) */
+  --classic-shadow: 0 10px 40px rgba(0,0,0,.12), 0 2px 8px rgba(0,0,0,.06);
+  --classic-shadow-lg: 0 20px 60px rgba(0,0,0,.15), 0 4px 12px rgba(0,0,0,.08);
+
+  /* Radios */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+
+  /* Transiciones */
+  --transition-fast: 150ms cubic-bezier(.4,0,.2,1);
+  --transition-smooth: 250ms cubic-bezier(.4,0,.2,1);
+  --transition-bounce: 300ms cubic-bezier(.34,1.56,.64,1);
+}
+
+/* -----------------------------------------------------------
+   ANIMACIONES GLOBALES
+   ----------------------------------------------------------- */
+
+/* Spinner con pulso orgánico — reemplaza el genérico animate-spin */
+@keyframes spinPulse {
+  0% { transform: rotate(0deg) scale(1); opacity: .7; }
+  50% { transform: rotate(180deg) scale(1.05); opacity: 1; }
+  100% { transform: rotate(360deg) scale(1); opacity: .7; }
+}
+
+/* Modal — slide up + fade + scale */
+@keyframes modalSlideUp {
+  from { opacity: 0; transform: translateY(24px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Entrada escalonada de filas de tabla */
+@keyframes tableRowEnter {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Flotación sutil para KPI cards */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* Brillo sutil para badges críticos */
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 4px rgba(239,68,68,.3); }
+  50% { box-shadow: 0 0 12px rgba(239,68,68,.5); }
+}
+
+/* Glass shimmer para background de cards especiales */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* -----------------------------------------------------------
+   CLASES UTILITARIAS
+   ----------------------------------------------------------- */
+
+/* Botón Neumórfico (base) */
+.neo-btn {
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-bounce);
+  box-shadow: var(--neu-shadow);
+  outline: none;
+}
+.neo-btn:hover {
+  box-shadow: var(--neu-shadow-hover);
+  transform: translateY(-1px);
+}
+.neo-btn:active {
+  box-shadow: var(--neu-shadow-pressed);
+  transform: translateY(1px);
+}
+
+/* Card Neumórfica */
+.neo-card {
+  border-radius: var(--radius-xl);
+  box-shadow: var(--neu-shadow-card);
+  transition: all var(--transition-smooth);
+}
+.neo-card:hover {
+  box-shadow: var(--neu-shadow-deep);
+  transform: translateY(-2px);
+}
+
+/* Card Clasimórfica */
+.classic-card {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--classic-shadow);
+}
+
+/* Input Neumórfico */
+.neo-input {
+  border-radius: var(--radius-sm);
+  box-shadow: var(--neu-shadow-input);
+  border: none;
+  background: var(--bg-page);
+  transition: all var(--transition-fast);
+  outline: none;
+}
+.neo-input:focus {
+  box-shadow: inset 1px 1px 3px rgba(59,130,246,.15), inset -1px -1px 2px rgba(255,255,255,.9), 0 0 0 3px rgba(59,130,246,.15);
+}
+
+/* Badge con glass effect */
+.glass-badge {
+  backdrop-filter: blur(4px);
+  border-radius: 9999px;
+  font-weight: 800;
+  letter-spacing: .025em;
+  box-shadow: inset 0 1px 2px rgba(255,255,255,.3), 0 1px 2px rgba(0,0,0,.04);
+}
+
+/* Header de tabla neumórfico */
+.neo-table-header {
+  letter-spacing: .12em;
+  font-size: 10px;
+}
+
+/* Overlay de modal */
+.modal-overlay {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Efecto relieve para texto grande (total S/) */
+.text-relief {
+  text-shadow: 0 1px 0 rgba(255,255,255,.4), 0 -1px 0 rgba(0,0,0,.06);
+}
+
+/* Glass surface */
+.glass {
+  background: rgba(255,255,255,.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,.4);
+}
+
+/* Select estilizado */
+.neo-select {
+  border-radius: var(--radius-sm);
+  box-shadow: var(--neu-shadow-input);
+  border: none;
+  background: var(--bg-page);
+  transition: all var(--transition-fast);
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+.neo-select:focus {
+  box-shadow: inset 1px 1px 3px rgba(59,130,246,.15), inset -1px -1px 2px rgba(255,255,255,.9), 0 0 0 3px rgba(59,130,246,.15);
+}
+
+/* -----------------------------------------------------------
+   SCROLLBAR PREMIUM
+   ----------------------------------------------------------- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: linear-gradient(to bottom, #f1f5f9, #e2e8f0);
+  border-radius: 8px;
+  box-shadow: inset 0 0 3px rgba(0,0,0,.05);
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #94a3b8, #64748b);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #64748b, #475569);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}

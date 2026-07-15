@@ -1,210 +1,121 @@
-.counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  margin-bottom: 24px;
+/* ============================================================
+   ANIMACIONES Y UTILIDADES ADICIONALES
+   Bodega JH — Sistema de Ventas e Inventario
+   ============================================================ */
 
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-}
-
-.hero {
-  position: relative;
-
-  .base,
-  .framework,
-  .vite {
-    inset-inline: 0;
-    margin: 0 auto;
-  }
-
-  .base {
-    width: 170px;
-    position: relative;
-    z-index: 0;
-  }
-
-  .framework,
-  .vite {
-    position: absolute;
-  }
-
-  .framework {
-    z-index: 1;
-    top: 34px;
-    height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
-  }
-
-  .vite {
-    z-index: 0;
-    top: 107px;
-    height: 26px;
-    width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
-  }
-}
-
-#center {
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
-  place-content: center;
-  place-items: center;
-  flex-grow: 1;
-
-  @media (max-width: 1024px) {
-    padding: 32px 20px 24px;
-    gap: 18px;
-  }
-}
-
-#next-steps {
-  display: flex;
-  border-top: 1px solid var(--border);
-  text-align: left;
-
-  & > div {
-    flex: 1 1 0;
-    padding: 32px;
-    @media (max-width: 1024px) {
-      padding: 24px 20px;
-    }
-  }
-
-  .icon {
-    margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
-  }
-
-  @media (max-width: 1024px) {
-    flex-direction: column;
-    text-align: center;
-  }
-}
-
-#docs {
-  border-right: 1px solid var(--border);
-
-  @media (max-width: 1024px) {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-}
-
-#next-steps ul {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  gap: 8px;
-  margin: 32px 0 0;
-
-  .logo {
-    height: 18px;
-  }
-
-  a {
-    color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
-    background: var(--social-bg);
-    display: flex;
-    padding: 6px 12px;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    transition: box-shadow 0.3s;
-
-    &:hover {
-      box-shadow: var(--shadow);
-    }
-    .button-icon {
-      height: 18px;
-      width: 18px;
-    }
-  }
-
-  @media (max-width: 1024px) {
-    margin-top: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-
-    li {
-      flex: 1 1 calc(50% - 8px);
-    }
-
-    a {
-      width: 100%;
-      justify-content: center;
-      box-sizing: border-box;
-    }
-  }
-}
-
-#spacer {
-  height: 88px;
-  border-top: 1px solid var(--border);
-  @media (max-width: 1024px) {
-    height: 48px;
-  }
-}
-
-.ticks {
-  position: relative;
-  width: 100%;
-
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4.5px;
-    border: 5px solid transparent;
-  }
-
-  &::before {
-    left: 0;
-    border-left-color: var(--border);
-  }
-  &::after {
-    right: 0;
-    border-right-color: var(--border);
-  }
-}
-
-/* Custom Scrollbar Premium */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #f1f5f9; 
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1; 
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8; 
-}
-
-/* Transiciones suaves para botones y modales */
+/* Animación de entrada para modales — heredada de la versión anterior, refinada */
 .modal-enter {
-  animation: modalFadeIn 0.3s ease-out forwards;
+  animation: modalSlideIn 0.35s cubic-bezier(.34, 1.56, .64, 1) forwards;
 }
-@keyframes modalFadeIn {
-  from { opacity: 0; transform: scale(0.95) translateY(-10px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Entrada escalonada de filas de tabla */
+@keyframes rowFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.row-enter {
+  animation: rowFadeIn 0.4s ease-out both;
+}
+
+/* Utilidad: delays secuenciales aplicables via style prop en JSX */
+/* row-enter se usa junto con animation-delay inline para stagger */
+
+/* Transición de salida para modales (cuando se desmontan) */
+.modal-exit {
+  animation: modalSlideOut 0.2s ease-in forwards;
+}
+
+@keyframes modalSlideOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(.95);
+  }
+}
+
+/* Efecto shimmer para cards especiales */
+.shimmer-bg {
+  background: linear-gradient(110deg, #f8fafc 30%, #ffffff 50%, #f8fafc 70%);
+  background-size: 200% 100%;
+  animation: shimmerMove 3s linear infinite;
+}
+
+@keyframes shimmerMove {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Skeleton loader pulso premium */
+.skeleton {
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: skeletonPulse 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+@keyframes skeletonPulse {
+  0%   { background-position: 200% 0; opacity: .6; }
+  50%  { opacity: 1; }
+  100% { background-position: -200% 0; opacity: .6; }
+}
+
+/* Hover lift universal para tarjetas */
+.hover-lift {
+  transition: transform 0.25s cubic-bezier(.34, 1.56, .64, 1),
+              box-shadow 0.25s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-3px);
+}
+
+/* Utilidad para contenedor de gráficos con efecto glass */
+.chart-glass {
+  background: rgba(255, 255, 255, .9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, .5);
+}
+
+/* Toggle pill base */
+.toggle-pill {
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(.4, 0, .2, 1);
+  box-shadow: var(--neu-shadow-input);
+}
+.toggle-pill:hover {
+  box-shadow: inset 1px 1px 3px rgba(0, 0, 0, .06), inset -1px -1px 2px rgba(255, 255, 255, .7);
+}
+.toggle-pill.active {
+  box-shadow: inset 2px 2px 4px rgba(0, 0, 0, .1), inset -1px -1px 2px rgba(255, 255, 255, .5);
+}
+
+/* Indicador de foco para iconos de acción */
+.icon-btn {
+  border-radius: 9999px;
+  transition: all 0.15s ease;
+  padding: 6px;
+}
+.icon-btn:hover {
+  transform: scale(1.15);
 }

@@ -18,7 +18,7 @@ const Reportes = () => {
     const procesarReportes = async () => {
       try {
         const historial = await obtenerHistorialVentas();
-        setHistorialCompleto(historial); // Guardamos la data para exportarla
+        setHistorialCompleto(historial);
 
         const ingresos = historial.reduce((sum, v) => sum + v.total, 0);
         setKpis({
@@ -83,69 +83,72 @@ const Reportes = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-50 min-h-screen p-4 lg:p-8">
+    <div className="flex-1 flex flex-col min-h-screen p-4 md:p-6 lg:p-8" style={{ background: 'var(--bg-page)' }}>
       <div className="mb-6 lg:mb-8 flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl lg:text-3xl font-extrabold text-slate-800 flex items-center gap-3"><BarChart3 className="text-blue-600"/> Inteligencia de Negocios (BI)</h2>
-          <p className="text-slate-500 text-sm mt-1">Análisis financiero y estadísticas de rendimiento general.</p>
+          <h2 className="text-2xl lg:text-3xl font-extrabold text-slate-800 flex items-center gap-3"><span className="bg-white p-2 rounded-full shadow-[var(--neu-shadow)] ring-1 ring-blue-500/10"><BarChart3 className="text-blue-600 drop-shadow-sm" size={26} /></span> Inteligencia de Negocios (BI)</h2>
+          <p className="text-slate-500 text-sm mt-1 ml-12">Análisis financiero y estadísticas de rendimiento general.</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={exportarExcel} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow transition-colors"><Download size={16}/> Excel</button>
-          <button onClick={exportarPDF} className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow transition-colors"><Download size={16}/> PDF</button>
+          <button onClick={exportarExcel} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-emerald-700 transition-all duration-200 border-none cursor-pointer" style={{ background: '#ecfdf5', boxShadow: 'var(--neu-shadow)', fontWeight: 800 }} onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--neu-shadow-hover)'} onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--neu-shadow)'}><Download size={16} /> Excel</button>
+          <button onClick={exportarPDF} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-red-700 transition-all duration-200 border-none cursor-pointer" style={{ background: '#fef2f2', boxShadow: 'var(--neu-shadow)', fontWeight: 800 }} onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--neu-shadow-hover)'} onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--neu-shadow)'}><Download size={16} /> PDF</button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4 border-l-4 border-l-blue-500 hover:-translate-y-1 hover:shadow-md transition-all">
-          <div className="bg-blue-100 p-3 rounded-full text-blue-600"><Banknote size={24}/></div>
-          <div><p className="text-sm font-bold text-slate-500 uppercase">Ingresos Totales</p><p className="text-2xl font-black text-slate-800">S/ {kpis.totalRecaudado.toFixed(2)}</p></div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-8">
+        <div className="bg-white p-5 md:p-6 rounded-2xl flex items-center gap-4 border-l-4 border-l-blue-500 hover-lift cursor-default" style={{ boxShadow: 'var(--neu-shadow-card)' }}>
+          <div className="p-3 md:p-4 rounded-full bg-blue-50 shadow-[inset_0_2px_4px_rgba(0,0,0,.04)] ring-1 ring-blue-100"><Banknote size={24} className="text-blue-600 drop-shadow-sm" /></div>
+          <div><p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Ingresos Totales</p><p className="text-xl md:text-2xl font-extrabold text-slate-800 mt-1" style={{ textShadow: '0 1px 0 #fff,0 -1px 0 rgba(0,0,0,.04)' }}>S/ {kpis.totalRecaudado.toFixed(2)}</p></div>
         </div>
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4 border-l-4 border-l-emerald-500 hover:-translate-y-1 hover:shadow-md transition-all">
-          <div className="bg-emerald-100 p-3 rounded-full text-emerald-600"><PackageOpen size={24}/></div>
-          <div><p className="text-sm font-bold text-slate-500 uppercase">Ventas Realizadas</p><p className="text-2xl font-black text-slate-800">{kpis.totalVentas}</p></div>
+        <div className="bg-white p-5 md:p-6 rounded-2xl flex items-center gap-4 border-l-4 border-l-emerald-500 hover-lift cursor-default" style={{ boxShadow: 'var(--neu-shadow-card)' }}>
+          <div className="p-3 md:p-4 rounded-full bg-emerald-50 shadow-[inset_0_2px_4px_rgba(0,0,0,.04)] ring-1 ring-emerald-100"><PackageOpen size={24} className="text-emerald-600 drop-shadow-sm" /></div>
+          <div><p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Ventas Realizadas</p><p className="text-xl md:text-2xl font-extrabold text-slate-800 mt-1" style={{ textShadow: '0 1px 0 #fff,0 -1px 0 rgba(0,0,0,.04)' }}>{kpis.totalVentas}</p></div>
         </div>
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4 border-l-4 border-l-purple-500 hover:-translate-y-1 hover:shadow-md transition-all">
-          <div className="bg-purple-100 p-3 rounded-full text-purple-600"><TrendingUp size={24}/></div>
-          <div><p className="text-sm font-bold text-slate-500 uppercase">Ticket Promedio</p><p className="text-2xl font-black text-slate-800">S/ {kpis.ticketPromedio.toFixed(2)}</p></div>
+        <div className="bg-white p-5 md:p-6 rounded-2xl flex items-center gap-4 border-l-4 border-l-purple-500 hover-lift cursor-default sm:col-span-2 md:col-span-1" style={{ boxShadow: 'var(--neu-shadow-card)' }}>
+          <div className="p-3 md:p-4 rounded-full bg-purple-50 shadow-[inset_0_2px_4px_rgba(0,0,0,.04)] ring-1 ring-purple-100"><TrendingUp size={24} className="text-purple-600 drop-shadow-sm" /></div>
+          <div><p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Ticket Promedio</p><p className="text-xl md:text-2xl font-extrabold text-slate-800 mt-1" style={{ textShadow: '0 1px 0 #fff,0 -1px 0 rgba(0,0,0,.04)' }}>S/ {kpis.ticketPromedio.toFixed(2)}</p></div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="col-span-1 lg:col-span-2 bg-white p-4 lg:p-6 rounded-xl border border-slate-200 shadow-sm">
-          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><TrendingUp size={18}/> Evolución de Ingresos (7 días)</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="col-span-1 lg:col-span-2 rounded-2xl p-4 md:p-6" style={{ background: 'rgba(255,255,255,.85)', boxShadow: 'var(--neu-shadow-card)', border: '1px solid rgba(255,255,255,.6)', backdropFilter: 'blur(4px)' }}>
+          <h3 className="text-lg font-extrabold text-slate-800 mb-6 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,.5)]"></span>
+            Evolución de Ingresos (7 días)
+          </h3>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={dataGrafico} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorIngresos" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.9}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.2}/>
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.9} />
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.2} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="fecha" tick={{fontSize: 11, fill: '#64748b'}} tickLine={false} axisLine={false} />
-                <YAxis tick={{fontSize: 11, fill: '#64748b'}} tickLine={false} axisLine={false} tickFormatter={(val) => `S/${val}`} />
-                <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} formatter={(value) => [`S/ ${value}`, 'Ingresos']} />
+                <XAxis dataKey="fecha" tick={{ fontSize: 11, fontWeight: 600, fill: '#64748b' }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 11, fontWeight: 600, fill: '#64748b' }} tickLine={false} axisLine={false} tickFormatter={(val) => `S/${val}`} />
+                <Tooltip cursor={{ fill: '#f8fafc', opacity: .6 }} contentStyle={{ borderRadius: '12px', border: 'none', background: 'rgba(255,255,255,.95)', backdropFilter: 'blur(8px)', boxShadow: '0 8px 24px rgba(0,0,0,.1)' }} formatter={(value) => [`S/ ${value}`, 'Ingresos']} />
                 <Bar dataKey="Ingresos" fill="url(#colorIngresos)" radius={[6, 6, 0, 0]} barSize={35} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
-        <div className="col-span-1 bg-white p-4 lg:p-6 rounded-xl border border-slate-200 shadow-sm">
-          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><CreditCard size={18}/> Métodos de Pago</h3>
+        <div className="col-span-1 rounded-2xl p-4 md:p-6" style={{ background: 'rgba(255,255,255,.85)', boxShadow: 'var(--neu-shadow-card)', border: '1px solid rgba(255,255,255,.6)', backdropFilter: 'blur(4px)' }}>
+          <h3 className="text-lg font-extrabold text-slate-800 mb-6 flex items-center gap-2"><CreditCard size={18} className="text-purple-500" /> Métodos de Pago</h3>
           <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={dataPagos} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" isAnimationActive={false}>
+                <Pie data={dataPagos} cx="50%" cy="50%" innerRadius={55} outerRadius={78} paddingAngle={5} dataKey="value" isAnimationActive={false}>
                 </Pie>
-                <Tooltip formatter={(value) => [`S/ ${value.toFixed(2)}`, 'Monto']} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                <Tooltip formatter={(value) => [`S/ ${value.toFixed(2)}`, 'Monto']} contentStyle={{ borderRadius: '12px', border: 'none', background: 'rgba(255,255,255,.95)', backdropFilter: 'blur(8px)', boxShadow: '0 8px 24px rgba(0,0,0,.1)' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
           <div className="flex flex-wrap justify-center gap-3 mt-4">
             {dataPagos.map((p, i) => (
-              <span key={p.name} className="text-xs font-bold flex items-center gap-1 text-slate-600 bg-slate-50 px-2 py-1 rounded">
-                <span className="w-3 h-3 rounded-full" style={{backgroundColor: COLORS[i % COLORS.length]}}></span>
+              <span key={p.name} className="text-xs font-bold flex items-center gap-1.5 text-slate-600 bg-slate-100 px-2.5 py-1.5 rounded-xl" style={{ boxShadow: 'var(--neu-shadow-input)' }}>
+                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length], boxShadow: `0 0 6px ${COLORS[i % COLORS.length]}80` }}></span>
                 {p.name}
               </span>
             ))}

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PropTypes from 'prop-types'; // 1. Solución para validación de props
+import PropTypes from 'prop-types';
 import { Mail, Lock, Eye, EyeOff, Box } from 'lucide-react';
 import { iniciarSesion } from '../services/auth.service';
 
 const Login = ({ onLoginSuccess }) => {
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,101 +15,95 @@ const Login = ({ onLoginSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(''); 
-    setLoading(true); 
+    setError('');
+    setLoading(true);
 
     try {
       await iniciarSesion(email, password);
-      
-      if (onLoginSuccess) {
-        onLoginSuccess();
-      }
-      
-      navigate('/inventario'); 
-      
+      if (onLoginSuccess) onLoginSuccess();
+      navigate('/inventario');
     } catch (err) {
-      // 2. Solución a S2486 y no-unused-vars: Manejamos el error adecuadamente
       console.error("Error durante el inicio de sesión:", err);
       setError('Correo o contraseña incorrectos.');
     } finally {
-      setLoading(false); 
+      setLoading(false);
     }
   };
-  
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 font-sans">
-      
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 font-sans"
+      style={{ background: 'linear-gradient(135deg, #f0f2f5 0%, #e2e8f0 100%)' }}>
+
       <div className="flex items-center mb-8 gap-4">
-        <div className="text-blue-500">
-          <Box size={48} strokeWidth={1.5} />
+        <div className="text-blue-500 p-2 rounded-2xl bg-white"
+          style={{ boxShadow: 'var(--neu-shadow)' }}>
+          <Box size={44} strokeWidth={1.5} className="drop-shadow-sm" />
         </div>
-        <h1 className="text-2xl font-semibold text-slate-800 leading-tight">
-          SISTEMA DE VENTAS<br />E INVENTARIO
+        <h1 className="text-2xl font-extrabold text-slate-800 leading-tight tracking-wide">
+          BODEGA JH<br />
+          <span className="text-sm font-bold text-slate-500 tracking-wide">SISTEMA DE VENTAS E INVENTARIO</span>
         </h1>
       </div>
 
-      <div className="bg-white p-8 rounded-lg shadow-sm border border-slate-100 w-full max-w-md">
-        <h2 className="text-xl font-semibold text-center mb-6 text-slate-800">
-          INICIAR SESIÓN
-        </h2>
+      <div className="w-full max-w-md p-8 rounded-2xl" style={{ background: 'rgba(255,255,255,.9)', boxShadow: 'var(--classic-shadow)', border: '1px solid rgba(255,255,255,.6)', backdropFilter: 'blur(8px)' }}>
+        <h2 className="text-xl font-extrabold text-center mb-6 text-slate-800 tracking-wide">INICIAR SESIÓN</h2>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-md text-center">
+          <div className="mb-4 p-3 rounded-xl text-sm font-bold text-center text-red-700 bg-red-50/80 border border-red-100/60 backdrop-blur-sm"
+            style={{ boxShadow: 'inset 0 1px 2px rgba(255,255,255,.4)' }}>
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          
+
           <div>
-            {/* 3. Solución S6853: Etiqueta vinculada al input mediante htmlFor e id */}
-            <label htmlFor="email" className="block text-sm text-slate-700 mb-1">
+            <label htmlFor="email" className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
               Correo Electrónico
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Mail className="h-4 w-4 text-slate-400" />
-              </div>
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
               <input
                 id="email"
-                type="email" // Mejor cambiarlo a "email" en lugar de "text"
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                className="block w-full pl-11 pr-4 py-3 rounded-xl text-sm font-medium text-slate-700 outline-none"
+                style={{ background: '#f0f2f5', boxShadow: 'inset 2px 2px 5px rgba(0,0,0,.05), inset -1px -1px 3px rgba(255,255,255,.8)', border: 'none', transition: 'all .15s ease' }}
                 placeholder="usuario@ejemplo.com"
                 required
+                onFocus={(e) => { e.target.style.boxShadow = 'inset 1px 1px 3px rgba(59,130,246,.15), inset -1px -1px 2px rgba(255,255,255,.9), 0 0 0 3px rgba(59,130,246,.12)'; }}
+                onBlur={(e) => { e.target.style.boxShadow = 'inset 2px 2px 5px rgba(0,0,0,.05), inset -1px -1px 3px rgba(255,255,255,.8)'; }}
               />
             </div>
           </div>
 
           <div>
-            {/* 4. Solución S6853: Etiqueta vinculada al input mediante htmlFor e id */}
-            <label htmlFor="password" className="block text-sm text-slate-700 mb-1">
+            <label htmlFor="password" className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
               Contraseña
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Lock className="h-4 w-4 text-slate-400" />
-              </div>
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
               <input
                 id="password"
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="block w-full pl-10 pr-10 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                className="block w-full pl-11 pr-12 py-3 rounded-xl text-sm font-medium text-slate-700 outline-none"
+                style={{ background: '#f0f2f5', boxShadow: 'inset 2px 2px 5px rgba(0,0,0,.05), inset -1px -1px 3px rgba(255,255,255,.8)', border: 'none', transition: 'all .15s ease' }}
                 placeholder="••••••••"
                 required
+                onFocus={(e) => { e.target.style.boxShadow = 'inset 1px 1px 3px rgba(59,130,246,.15), inset -1px -1px 2px rgba(255,255,255,.9), 0 0 0 3px rgba(59,130,246,.12)'; }}
+                onBlur={(e) => { e.target.style.boxShadow = 'inset 2px 2px 5px rgba(0,0,0,.05), inset -1px -1px 3px rgba(255,255,255,.8)'; }}
               />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="text-slate-400 hover:text-slate-600 focus:outline-none"
-                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-white/60 transition-all bg-transparent border-none cursor-pointer"
+                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
           </div>
 
@@ -117,9 +111,9 @@ const Login = ({ onLoginSuccess }) => {
             <input
               id="remember-me"
               type="checkbox"
-              className="h-4 w-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
             />
-            <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-700">
+            <label htmlFor="remember-me" className="ml-2 block text-sm font-medium text-slate-600">
               Recuérdame
             </label>
           </div>
@@ -127,19 +121,29 @@ const Login = ({ onLoginSuccess }) => {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white transition-colors mt-2 
-              ${loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-[#3b82f6] hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'}`}
+            className={`w-full flex justify-center py-3.5 px-4 rounded-xl text-sm font-extrabold text-white tracking-wide transition-all duration-200 border-none cursor-pointer mt-2 ${
+              loading ? 'opacity-70 cursor-not-allowed' : ''
+            }`}
+            style={loading ? {
+              background: '#93c5fd',
+              boxShadow: 'inset 2px 2px 4px rgba(0,0,0,.08)'
+            } : {
+              background: '#2563eb',
+              boxShadow: '4px 4px 8px rgba(37,99,235,.2), -2px -2px 4px rgba(255,255,255,.6), inset 0 1px 0 rgba(255,255,255,.15)',
+              transition: 'all .25s cubic-bezier(.34,1.56,.64,1)'
+            }}
+            onMouseEnter={(e) => { if (!loading) e.target.style.boxShadow = '3px 3px 6px rgba(37,99,235,.15), -1px -1px 3px rgba(255,255,255,.7), inset 0 1px 0 rgba(255,255,255,.15)'; e.target.style.transform = 'translateY(-1px)'; }}
+            onMouseLeave={(e) => { if (!loading) { e.target.style.boxShadow = '4px 4px 8px rgba(37,99,235,.2), -2px -2px 4px rgba(255,255,255,.5), inset 0 1px 0 rgba(255,255,255,.15)'; e.target.style.transform = 'translateY(0)'; }}}
           >
             {loading ? 'Verificando...' : 'Ingresar'}
           </button>
         </form>
 
         <div className="mt-6 text-center">
-          {/* 5. Solución S6844: Cambiado etiqueta "a href=#" por un botón tipo link */}
-          <button 
+          <button
             type="button"
             onClick={() => alert("Funcionalidad en desarrollo")}
-            className="text-sm text-[#3b82f6] hover:text-blue-700 transition-colors bg-transparent border-none p-0 cursor-pointer underline-offset-2"
+            className="text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors bg-transparent border-none p-0 cursor-pointer"
           >
             ¿Olvidaste tu contraseña?
           </button>
@@ -147,9 +151,8 @@ const Login = ({ onLoginSuccess }) => {
       </div>
     </div>
   );
-}
+};
 
-// Validación explícita de las propiedades
 Login.propTypes = {
   onLoginSuccess: PropTypes.func
 };
