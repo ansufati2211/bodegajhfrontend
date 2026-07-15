@@ -9,5 +9,5 @@ export default defineConfig({
     tailwindcss(),
   ],
   // ESTA LÍNEA ES CRUCIAL PARA GITHUB PAGES
-  base: '/bodegajhfrontend/', 
+  base: '/bodegajhfrontend/',
 })
