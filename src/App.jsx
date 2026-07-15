@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+// Cambia BrowserRouter por HashRouter
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import SalesHistory from './pages/SalesHistory';
 import Login from './components/Login';
 import Layout from './components/Layout';
@@ -20,8 +21,8 @@ function App() {
     setEstaLogueado(false);
   };
 
-  return (
-    <BrowserRouter>
+ return (
+    <HashRouter>
       <Routes>
         <Route path="/login" element={estaLogueado ? <Navigate to="/inventario" /> : <Login onLoginSuccess={manejarIngresoExitoso} />} />
         
@@ -39,7 +40,7 @@ function App() {
           <Route path="configuracion" element={<Configuracion />} />
         </Route>
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
